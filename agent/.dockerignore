@@ -1,0 +1,6 @@
+.venv
+.env
+**/.env
+**/.adk
+**/__pycache__
+tests

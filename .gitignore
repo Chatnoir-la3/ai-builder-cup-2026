@@ -1,0 +1,7 @@
+.env
+.env*.local
+**/.adk/
+**/.venv/
+**/__pycache__/
+node_modules/
+.next/
