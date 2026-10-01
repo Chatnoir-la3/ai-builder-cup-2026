@@ -14,8 +14,8 @@ app = get_fast_api_app(
 )
 
 
-@app.get("/healthz")
-def healthz() -> dict[str, str]:
+@app.get("/health")  # Cloud Run reserves paths ending in "z"
+def health() -> dict[str, str]:
     return {"status": "ok"}
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build from source and deploy both services to Cloud Run.
 # The agent is private; only the web service account may invoke it.
+# The web is public via --no-invoker-iam-check, which works under domain-restricted-sharing org policies.
 # Usage: PROJECT_ID=... infra/deploy.sh [agent|web|all]
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
@@ -18,6 +19,6 @@ fi
 if [[ "$TARGET" == web || "$TARGET" == all ]]; then
   AGENT_URL="$(gcloud run services describe "$AGENT_SERVICE" --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')"
   gcloud run deploy "$WEB_SERVICE" --project="$PROJECT_ID" --region="$REGION" \
-    --source="$ROOT/web" --service-account="$WEB_SA" --allow-unauthenticated \
+    --source="$ROOT/web" --service-account="$WEB_SA" --no-invoker-iam-check \
     --set-env-vars="AGENT_URL=$AGENT_URL"
 fi
