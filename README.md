@@ -35,7 +35,21 @@ npm run dev                # http://localhost:3000, talks to AGENT_URL (default 
 
 Tests: `cd agent && PYTHONPATH=. uv run pytest`, `cd web && npm run lint && npm run build`.
 
+## Model availability (checked 2026-10-02)
+
+| Model | `global` | `asia-southeast1` / `asia-northeast1` |
+|---|---|---|
+| gemini-3.8-flash, gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemini-3.1-pro-preview | yes | no |
+| gemini-3.5-flash | yes | yes |
+| gemini-embedding-001, text-embedding-005, text-multilingual-embedding-002 | yes | yes (SG checked) |
+
+Default is `gemini-3.8-flash` on `global`. If data must stay in-region, switch to `gemini-3.5-flash` with `MODEL_LOCATION=asia-southeast1`.
+
 ## Deploy
+
+CI (`.github/workflows/ci.yml`) tests every PR and deploys `main` to Cloud Run using keyless Workload Identity Federation (`infra/bootstrap-ci.sh`, run once).
+
+Manual:
 
 ```bash
 PROJECT_ID=<id> BILLING_ACCOUNT=<id> infra/bootstrap.sh   # once
