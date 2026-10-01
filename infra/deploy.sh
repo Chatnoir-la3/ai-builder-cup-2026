@@ -11,7 +11,7 @@ TARGET="${1:-all}"
 if [[ "$TARGET" == agent || "$TARGET" == all ]]; then
   gcloud run deploy "$AGENT_SERVICE" --project="$PROJECT_ID" --region="$REGION" \
     --source="$ROOT/agent" --service-account="$AGENT_SA" --no-allow-unauthenticated \
-    --set-env-vars="GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=$MODEL_LOCATION,GEMINI_MODEL=$GEMINI_MODEL"
+    --set-env-vars="GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=$MODEL_LOCATION,GEMINI_MODEL=$GEMINI_MODEL,MODEL_ARMOR_TEMPLATE=$MODEL_ARMOR_TEMPLATE,AUDIT_DATASET=$AUDIT_DATASET,AUDIT_LOCATION=$GUARD_LOCATION"
   gcloud run services add-iam-policy-binding "$AGENT_SERVICE" --project="$PROJECT_ID" --region="$REGION" \
     --member="serviceAccount:$WEB_SA" --role=roles/run.invoker >/dev/null
 fi

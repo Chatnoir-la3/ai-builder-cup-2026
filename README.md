@@ -17,6 +17,11 @@ Browser ──► web (Next.js, Cloud Run, public)
 | Agent framework | Agent Development Kit (ADK) 2.x, FastAPI server |
 | Frontend | Next.js 16 (App Router), Tailwind CSS |
 | Hosting | Cloud Run (`asia-southeast1`) |
+| Guardrail | Model Armor (prompt injection / jailbreak, responsible-AI filters) via ADK `ModelArmorPlugin` |
+| Audit trail | BigQuery (`agent_audit.agent_events`) via ADK `BigQueryAgentAnalyticsPlugin` |
+| CI/CD | GitHub Actions + Workload Identity Federation (no service-account keys) |
+
+Guardrail and audit plugins turn on only when `MODEL_ARMOR_TEMPLATE` / `AUDIT_DATASET` are set, so local dev needs neither.
 
 ## Local development
 
@@ -52,7 +57,9 @@ CI (`.github/workflows/ci.yml`) tests every PR and deploys `main` to Cloud Run u
 Manual:
 
 ```bash
-PROJECT_ID=<id> BILLING_ACCOUNT=<id> infra/bootstrap.sh   # once
+PROJECT_ID=<id> BILLING_ACCOUNT=<id> infra/bootstrap.sh   # once: project, APIs, service accounts, budget
+PROJECT_ID=<id> infra/bootstrap-platform.sh                # once: Model Armor template, audit dataset
+PROJECT_ID=<id> GITHUB_REPO=<owner/repo> infra/bootstrap-ci.sh  # once: keyless CI deploy
 PROJECT_ID=<id> infra/check-model.sh global                # model smoke test
 PROJECT_ID=<id> infra/deploy.sh                            # agent + web
 ```
