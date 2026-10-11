@@ -19,10 +19,14 @@ async function authHeaders(): Promise<Record<string, string>> {
   return value ? { Authorization: value } : {};
 }
 
+export async function agentFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = { ...(init.body ? { "Content-Type": "application/json" } : {}), ...(await authHeaders()) };
+  return fetch(`${AGENT_URL}${path}`, { ...init, headers: { ...headers, ...init.headers }, cache: "no-store" });
+}
+
 export async function runAgent(userId: string, sessionId: string, text: string): Promise<string> {
-  const res = await fetch(`${AGENT_URL}/run`, {
+  const res = await agentFetch("/run", {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({
       app_name: APP_NAME,
       user_id: userId,
