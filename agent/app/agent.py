@@ -39,7 +39,13 @@ def _plugins() -> list[BasePlugin]:
                 project_id=os.environ["GOOGLE_CLOUD_PROJECT"],
                 dataset_id=dataset,
                 location=os.getenv("AUDIT_LOCATION", "asia-southeast1"),
-                config=BigQueryLoggerConfig(log_multi_modal_content=False, content_formatter=redact_content),
+                config=BigQueryLoggerConfig(
+                    log_multi_modal_content=False,
+                    content_formatter=redact_content,
+                    # Session state and state deltas hold what was read from the originals.
+                    log_session_metadata=False,
+                    event_denylist=["STATE_DELTA"],
+                ),
             )
         )
     return plugins

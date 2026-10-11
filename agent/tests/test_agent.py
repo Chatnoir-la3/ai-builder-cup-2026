@@ -23,6 +23,8 @@ def test_plugins_follow_env(monkeypatch):
 
     audit = next(p for p in plugins if type(p).__name__ == "BigQueryAgentAnalyticsPlugin")
     assert audit.config.log_multi_modal_content is False
+    assert audit.config.log_session_metadata is False
+    assert audit.config.event_denylist == ["STATE_DELTA"]
     assert audit.config.content_formatter("口座：普通 8812345", "LLM_REQUEST") == "[REDACTED]"
 
 
