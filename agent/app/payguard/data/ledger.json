@@ -1,0 +1,69 @@
+{
+  "company_domains": ["kaede-koumuten.example"],
+  "people": [
+    {
+      "family_name": "佐藤",
+      "full_name": "佐藤 一郎",
+      "role": "代表取締役",
+      "usual_channels": ["email", "in_person"],
+      "contact": {"name": "佐藤 一郎", "phone": "090-0000-1001"}
+    },
+    {
+      "family_name": "鈴木",
+      "full_name": "鈴木 花子",
+      "role": "経理",
+      "usual_channels": ["email", "in_person"],
+      "contact": {"name": "鈴木 花子", "phone": "090-0000-1002"}
+    }
+  ],
+  "vendors": [
+    {
+      "id": "V001",
+      "name": "山田建材株式会社",
+      "holder_kana": "ヤマダケンザイ(カ",
+      "accounts": [
+        {"bank_name": "かえで銀行", "branch_name": "本店", "account_type": "ordinary", "number": "1234567", "holder_kana": "ヤマダケンザイ(カ", "registered_on": "2024-04-01"}
+      ],
+      "email_domains": ["yamada-kenzai.example"],
+      "usual_channels": ["email"],
+      "contact": {"name": "山田建材 営業部 田中", "phone": "03-0000-2001"}
+    },
+    {
+      "id": "V002",
+      "name": "東和設備工業株式会社",
+      "holder_kana": "トウワセツビコウギヨウ(カ",
+      "accounts": [
+        {"bank_name": "さくら信用金庫", "branch_name": "駅前支店", "account_type": "current", "number": "7654321", "holder_kana": "トウワセツビコウギヨウ(カ", "registered_on": "2023-11-15"}
+      ],
+      "email_domains": ["towa-setsubi.example"],
+      "usual_channels": ["email", "edi"],
+      "contact": {"name": "東和設備工業 経理部", "phone": "03-0000-2002"}
+    },
+    {
+      "id": "V003",
+      "name": "みどり運送有限会社",
+      "holder_kana": "ミドリウンソウ(ユ",
+      "accounts": [
+        {"bank_name": "かえで銀行", "branch_name": "港支店", "account_type": "ordinary", "number": "2468013", "holder_kana": "ミドリウンソウ(ユ", "registered_on": "2025-02-01"}
+      ],
+      "email_domains": ["midori-unso.example"],
+      "usual_channels": ["email"],
+      "contact": {"name": "みどり運送 事務所", "phone": "045-000-2003"}
+    }
+  ],
+  "history": [
+    {"vendor_id": "V001", "account_number": "1234567", "amount": 412000, "paid_on": "2026-04-30"},
+    {"vendor_id": "V001", "account_number": "1234567", "amount": 386000, "paid_on": "2026-05-29"},
+    {"vendor_id": "V001", "account_number": "1234567", "amount": 517000, "paid_on": "2026-06-30"},
+    {"vendor_id": "V001", "account_number": "1234567", "amount": 448000, "paid_on": "2026-07-31"},
+    {"vendor_id": "V001", "account_number": "1234567", "amount": 473000, "paid_on": "2026-08-31"},
+    {"vendor_id": "V001", "account_number": "1234567", "amount": 455000, "paid_on": "2026-09-30"},
+    {"vendor_id": "V002", "account_number": "7654321", "amount": 1240000, "paid_on": "2026-06-30"},
+    {"vendor_id": "V002", "account_number": "7654321", "amount": 1850000, "paid_on": "2026-07-31"},
+    {"vendor_id": "V002", "account_number": "7654321", "amount": 1520000, "paid_on": "2026-08-31"},
+    {"vendor_id": "V002", "account_number": "7654321", "amount": 1610000, "paid_on": "2026-09-30"},
+    {"vendor_id": "V003", "account_number": "2468013", "amount": 88000, "paid_on": "2026-07-31"},
+    {"vendor_id": "V003", "account_number": "2468013", "amount": 121000, "paid_on": "2026-08-31"},
+    {"vendor_id": "V003", "account_number": "2468013", "amount": 97000, "paid_on": "2026-09-30"}
+  ]
+}
