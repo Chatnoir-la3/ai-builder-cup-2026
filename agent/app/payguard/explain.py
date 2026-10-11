@@ -178,5 +178,7 @@ explainer_agent = Agent(
     output_schema=Explanation,
     output_key="explanation",
     before_model_callback=_only_findings,
-    generate_content_config=types.GenerateContentConfig(temperature=0),
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0, thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+    ),
 )
