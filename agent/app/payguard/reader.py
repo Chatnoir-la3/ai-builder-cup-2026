@@ -145,5 +145,7 @@ reader_agent = Agent(
     include_contents="none",
     output_schema=Reading,
     output_key="reading",
-    generate_content_config=types.GenerateContentConfig(temperature=0),
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0, thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+    ),
 )
