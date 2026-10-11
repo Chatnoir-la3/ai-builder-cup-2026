@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from . import demo
+from .models import CHANNEL_NAMES
 
 JST = timezone(timedelta(hours=9))
 Status = Literal["pending", "approved", "held"]
@@ -38,12 +39,9 @@ class DecisionError(Exception):
     pass
 
 
-CHANNEL_NAMES = {"email": "email", "line": "LINE", "sms": "text message", "phone": "phone", "in_person": "in person"}
-
-
 def _received(scenario: demo.Scenario) -> HistoryItem:
     at = datetime.combine(scenario.payment.requested_on, time(9, 0), tzinfo=JST)
-    channel = CHANNEL_NAMES.get(scenario.instruction.channel, scenario.instruction.channel)
+    channel = CHANNEL_NAMES[scenario.instruction.channel]
     return HistoryItem(at=at, event="received", detail=f"Payment request with an instruction by {channel}")
 
 

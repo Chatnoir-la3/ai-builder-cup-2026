@@ -4,6 +4,15 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 Channel = Literal["email", "line", "sms", "phone", "in_person", "edi", "other"]
+CHANNEL_NAMES: dict[str, str] = {
+    "email": "email",
+    "line": "LINE",
+    "sms": "text message",
+    "phone": "phone",
+    "in_person": "in person",
+    "edi": "EDI",
+    "other": "another channel",
+}
 
 
 class BankAccount(BaseModel):

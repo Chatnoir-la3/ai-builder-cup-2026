@@ -138,7 +138,7 @@ def test_template_notice_for_every_code_passes_its_own_checks():
         Finding(code="ACCOUNT_RECENTLY_REGISTERED", facts={"vendor": "山田建材株式会社", "days_ago": 9}),
         Finding(code="AMOUNT_ABOVE_HISTORY", facts={"amount": 900000, "past_max": 517000, "past_count": 6}),
         Finding(code="SENDER_DOMAIN_UNREGISTERED", facts={"domain": "free.example", "registered": "yamada-kenzai.example"}),
-        Finding(code="UNUSUAL_CHANNEL", facts={"who": "佐藤 一郎 (代表取締役)", "channel": "line", "usual": "email"}),
+        Finding(code="UNUSUAL_CHANNEL", facts={"who": "佐藤 一郎 (代表取締役)", "channel": "LINE", "usual": "email"}),
         Finding(code="INSTRUCTION_MISMATCH", facts={"instruction_amount": 1, "payment_amount": 2}),
     ]
     for f in findings:
