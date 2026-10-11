@@ -2,11 +2,21 @@
   {
     "id": "routine-invoice",
     "title": "Monthly invoice from a regular supplier",
+    "originals": [
+      "routine-invoice.email.txt",
+      "routine-invoice.invoice.png"
+    ],
     "payment": {
       "id": "P-1001",
       "vendor_id": "V001",
       "payee_name": "山田建材株式会社",
-      "account": {"bank_name": "かえで銀行", "branch_name": "本店", "account_type": "ordinary", "number": "1234567", "holder_kana": "ヤマダケンザイ(カ"},
+      "account": {
+        "bank_name": "かえで銀行",
+        "branch_name": "本店",
+        "account_type": "ordinary",
+        "number": "1234567",
+        "holder_kana": "ヤマダケンザイ(カ"
+      },
       "amount": 462000,
       "requested_on": "2026-10-10"
     },
@@ -23,11 +33,20 @@
   {
     "id": "account-change-after-ransomware",
     "title": "Supplier says its bank account changed after a ransomware attack",
+    "originals": [
+      "account-change.email.txt"
+    ],
     "payment": {
       "id": "P-1002",
       "vendor_id": "V001",
       "payee_name": "山田建材株式会社",
-      "account": {"bank_name": "あおば銀行", "branch_name": "新宿支店", "account_type": "ordinary", "number": "8812345", "holder_kana": "ヤマダ タロウ"},
+      "account": {
+        "bank_name": "あおば銀行",
+        "branch_name": "新宿支店",
+        "account_type": "ordinary",
+        "number": "8812345",
+        "holder_kana": "ヤマダ タロウ"
+      },
       "amount": 486000,
       "requested_on": "2026-10-10"
     },
@@ -44,19 +63,28 @@
   {
     "id": "ceo-chat-urgent-transfer",
     "title": "The CEO asks for an urgent transfer in a chat app",
+    "originals": [
+      "ceo-chat.line.png"
+    ],
     "payment": {
       "id": "P-1003",
       "vendor_id": null,
       "payee_name": "合同会社ネクストリンク",
-      "account": {"bank_name": "あおば銀行", "branch_name": "渋谷支店", "account_type": "ordinary", "number": "5503921", "holder_kana": "ネクストリンク(ド"},
+      "account": {
+        "bank_name": "あおば銀行",
+        "branch_name": "渋谷支店",
+        "account_type": "ordinary",
+        "number": "5503921",
+        "holder_kana": "ネクストリンク(ド"
+      },
       "amount": 3000000,
       "requested_on": "2026-10-10"
     },
     "instruction": {
       "channel": "line",
-      "sender_name": "佐藤 一郎",
-      "sender_address": "佐藤一郎",
-      "payee_name": "合同会社ネクストリンク",
+      "sender_name": "佐藤一郎",
+      "sender_address": null,
+      "payee_name": null,
       "account_number": "5503921",
       "account_holder": "ネクストリンク(ド",
       "amount": 3000000

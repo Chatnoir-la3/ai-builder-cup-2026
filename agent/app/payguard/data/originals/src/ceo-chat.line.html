@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #8ca6c6; font-family: "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 15px; }
+  .phone { width: 390px; min-height: 760px; box-sizing: border-box; }
+  .bar { background: #24344d; color: #fff; padding: 14px 16px; font-weight: 700; font-size: 17px; }
+  .day { text-align: center; margin: 14px 0 6px; }
+  .day span { background: rgba(0,0,0,.25); color: #fff; font-size: 12px; padding: 2px 10px; border-radius: 10px; }
+  .msg { display: flex; gap: 8px; padding: 6px 12px; align-items: flex-end; }
+  .msg.them .icon { width: 36px; height: 36px; border-radius: 50%; background: #d9d9d9; flex: none; align-self: flex-start; }
+  .bubble { max-width: 250px; padding: 9px 12px; border-radius: 16px; line-height: 1.55; white-space: pre-wrap; }
+  .them .bubble { background: #fff; }
+  .me { justify-content: flex-end; }
+  .me .bubble { background: #8de055; }
+  .time { font-size: 10px; color: #23324a; }
+  .name { font-size: 11px; color: #23324a; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="bar">‹　佐藤一郎</div>
+  <div class="day"><span>10月10日(土)</span></div>
+  <div class="msg them"><div class="icon"></div><div><div class="name">佐藤一郎</div><div class="bubble">鈴木さん、今少しいい？</div></div><div class="time">9:41</div></div>
+  <div class="msg me"><div class="time">既読<br>9:42</div><div class="bubble">はい、大丈夫です</div></div>
+  <div class="msg them"><div class="icon"></div><div><div class="name">佐藤一郎</div><div class="bubble">新しい取引先との契約で、今日中に手付金を入れないといけない。今会議中で電話に出られないから、この口座に300万円振り込んでおいて。</div></div><div class="time">9:43</div></div>
+  <div class="msg them"><div class="icon"></div><div><div class="name">佐藤一郎</div><div class="bubble">あおば銀行 渋谷支店
+普通 5503921
+ネクストリンク(ド
+3,000,000円</div></div><div class="time">9:43</div></div>
+  <div class="msg them"><div class="icon"></div><div><div class="name">佐藤一郎</div><div class="bubble">この件はまだ社内に言わないで。終わったら連絡して</div></div><div class="time">9:44</div></div>
+  <div class="msg me"><div class="time">既読<br>9:45</div><div class="bubble">承知しました</div></div>
+</div>
+</body>
+</html>
