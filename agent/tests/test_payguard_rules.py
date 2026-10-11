@@ -45,6 +45,8 @@ def test_ceo_chat_urgent_transfer():
     result = check(LEDGER, payment, ins)
     assert {f.code for f in result.findings} == {"NEW_PAYEE", "UNUSUAL_CHANNEL"}
     assert result.verify_with is not None and result.verify_with.phone == "090-0000-1001"
+    channel = next(f for f in result.findings if f.code == "UNUSUAL_CHANNEL")
+    assert channel.facts["channel"] == "LINE"
 
 
 def test_amount_above_history():

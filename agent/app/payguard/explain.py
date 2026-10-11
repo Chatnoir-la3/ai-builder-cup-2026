@@ -34,9 +34,6 @@ PRIORITY: tuple[str, ...] = (
     "INSTRUCTION_MISMATCH",
 )
 
-CHANNEL_NAMES = {"email": "email", "line": "LINE", "sms": "text message", "phone": "phone", "in_person": "in person"}
-
-
 class Reason(BaseModel):
     code: FindingCode
     text: str
@@ -87,8 +84,7 @@ def _template_reason(f: Finding) -> str:
         case "SENDER_DOMAIN_UNREGISTERED":
             return f"The email came from {x['domain']}, not the registered {x['registered']}."
         case "UNUSUAL_CHANNEL":
-            channel = CHANNEL_NAMES.get(str(x["channel"]), str(x["channel"]))
-            return f"{x['who']} does not usually send payment instructions by {channel}."
+            return f"{x['who']} does not usually send payment instructions by {x['channel']}."
         case "INSTRUCTION_MISMATCH":
             return "The instruction and the transfer you are about to approve do not match."
     return "This payment differs from your usual pattern."

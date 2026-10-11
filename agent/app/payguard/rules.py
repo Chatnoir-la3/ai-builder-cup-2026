@@ -8,7 +8,7 @@ how a person usually instructs payments), not on wording such as "urgent" or "co
 import re
 import unicodedata
 
-from .models import BankAccount, CheckResult, Contact, Finding, Instruction, Ledger, Payment, Person, Vendor
+from .models import CHANNEL_NAMES, BankAccount, CheckResult, Contact, Finding, Instruction, Ledger, Payment, Person, Vendor
 
 RECENT_DAYS = 30
 AMOUNT_RATIO = 1.5
@@ -154,7 +154,11 @@ def _channel_findings(ins: Instruction, who: str, usual: list[str]) -> list[Find
     return [
         Finding(
             code="UNUSUAL_CHANNEL",
-            facts={"who": who, "channel": ins.channel, "usual": ", ".join(usual)},
+            facts={
+                "who": who,
+                "channel": CHANNEL_NAMES[ins.channel],
+                "usual": ", ".join(CHANNEL_NAMES.get(c, c) for c in usual),
+            },
             fields=["sender_name", "sender_address"],
         )
     ]
