@@ -40,6 +40,16 @@ npm run dev                # http://localhost:3000, talks to AGENT_URL (default 
 
 Tests: `cd agent && PYTHONPATH=. uv run pytest`, `cd web && npm run lint && npm run build`.
 
+Reader tests that call Gemini are skipped by default. To run them (needs application default credentials):
+
+```bash
+cd agent
+GOOGLE_GENAI_USE_VERTEXAI=TRUE GOOGLE_CLOUD_PROJECT=<id> GOOGLE_CLOUD_LOCATION=global \
+  RUN_LIVE_GEMINI=1 PYTHONPATH=. uv run pytest tests/test_payguard_reader_live.py
+```
+
+The synthetic image originals are rendered from HTML with `tools/render-originals.sh`.
+
 ## Model availability (checked 2026-10-02)
 
 | Model | `global` | `asia-southeast1` / `asia-northeast1` |

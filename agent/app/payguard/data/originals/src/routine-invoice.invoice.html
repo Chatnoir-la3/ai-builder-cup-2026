@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #fff; font-family: "Noto Sans JP", "Yu Gothic", sans-serif; color: #222; }
+  .page { width: 760px; padding: 48px 56px; box-sizing: border-box; }
+  h1 { text-align: center; letter-spacing: .6em; font-size: 28px; margin: 0 0 32px; }
+  .row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .to { font-size: 18px; border-bottom: 1px solid #222; padding-bottom: 4px; }
+  .from { text-align: right; font-size: 13px; line-height: 1.7; }
+  .total { margin: 28px 0; font-size: 20px; border: 2px solid #222; padding: 10px 16px; display: inline-block; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { border: 1px solid #888; padding: 8px 10px; }
+  th { background: #f0f0f0; }
+  td.n { text-align: right; }
+  .bank { margin-top: 28px; font-size: 14px; line-height: 1.8; border: 1px solid #888; padding: 10px 14px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>請求書</h1>
+  <div class="row">
+    <div>
+      <div class="to">株式会社かえで工務店 御中</div>
+      <p style="font-size:13px">請求日 2026年10月5日／請求番号 YK-2610-031</p>
+    </div>
+    <div class="from">山田建材株式会社<br>東京都架空区見本町1-2-3<br>営業部 田中</div>
+  </div>
+  <div class="total">ご請求金額　¥462,000（税込）</div>
+  <table>
+    <tr><th>品目</th><th>数量</th><th>単価</th><th>金額</th></tr>
+    <tr><td>構造用合板 12mm</td><td class="n">120</td><td class="n">2,100</td><td class="n">252,000</td></tr>
+    <tr><td>防水シート</td><td class="n">30</td><td class="n">4,000</td><td class="n">120,000</td></tr>
+    <tr><td>配送費</td><td class="n">1</td><td class="n">48,000</td><td class="n">48,000</td></tr>
+    <tr><td colspan="3">消費税（10%）</td><td class="n">42,000</td></tr>
+    <tr><th colspan="3">合計</th><th class="n">462,000</th></tr>
+  </table>
+  <div class="bank">お振込先：かえで銀行 本店 普通 1234567<br>口座名義：ヤマダケンザイ(カ<br>お支払期日：2026年10月30日</div>
+</div>
+</body>
+</html>
