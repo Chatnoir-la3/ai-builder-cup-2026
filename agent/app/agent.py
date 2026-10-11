@@ -12,6 +12,11 @@ root_agent = Agent(
 )
 
 
+def redact_content(content: object, event_type: str) -> str:
+    """Audit rows keep who ran, when and at what cost, never the payment originals or what was read from them."""
+    return "[REDACTED]"
+
+
 def _plugins() -> list[BasePlugin]:
     """Guardrail and audit plugins, enabled only when their env vars are set (unset in local dev)."""
     plugins: list[BasePlugin] = []
@@ -24,13 +29,17 @@ def _plugins() -> list[BasePlugin]:
         )
     dataset = os.getenv("AUDIT_DATASET")
     if dataset:
-        from google.adk.plugins.bigquery_agent_analytics_plugin import BigQueryAgentAnalyticsPlugin
+        from google.adk.plugins.bigquery_agent_analytics_plugin import (
+            BigQueryAgentAnalyticsPlugin,
+            BigQueryLoggerConfig,
+        )
 
         plugins.append(
             BigQueryAgentAnalyticsPlugin(
                 project_id=os.environ["GOOGLE_CLOUD_PROJECT"],
                 dataset_id=dataset,
                 location=os.getenv("AUDIT_LOCATION", "asia-southeast1"),
+                config=BigQueryLoggerConfig(log_multi_modal_content=False, content_formatter=redact_content),
             )
         )
     return plugins

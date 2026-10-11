@@ -74,17 +74,29 @@ def _sender_person(ledger: Ledger, ins: Instruction) -> Person | None:
 
 def _account_findings(ledger: Ledger, payment: Payment, vendor: Vendor | None) -> list[Finding]:
     if vendor is None:
-        return [Finding(code="NEW_PAYEE", facts={"payee": payment.payee_name})]
+        return [Finding(code="NEW_PAYEE", facts={"payee": payment.payee_name}, fields=["payee_name", "account_number"])]
     registered = next((a for a in vendor.accounts if _same_account(a, payment.account)), None)
     if registered is None:
-        return [Finding(code="ACCOUNT_NOT_REGISTERED", facts={"vendor": vendor.name, "account": payment.account.number})]
+        return [
+            Finding(
+                code="ACCOUNT_NOT_REGISTERED",
+                facts={"vendor": vendor.name, "account": payment.account.number},
+                fields=["account_number"],
+            )
+        ]
     paid_before = any(
         h.vendor_id == vendor.id and _digits(h.account_number) == _digits(payment.account.number) for h in ledger.history
     )
     if registered.registered_on and not paid_before:
         age = (payment.requested_on - registered.registered_on).days
         if age <= RECENT_DAYS:
-            return [Finding(code="ACCOUNT_RECENTLY_REGISTERED", facts={"vendor": vendor.name, "days_ago": age})]
+            return [
+                Finding(
+                    code="ACCOUNT_RECENTLY_REGISTERED",
+                    facts={"vendor": vendor.name, "days_ago": age},
+                    fields=["account_number"],
+                )
+            ]
     return []
 
 

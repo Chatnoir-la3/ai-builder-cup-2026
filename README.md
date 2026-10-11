@@ -1,6 +1,14 @@
 # AI Builder Cup 2026 — prototype
 
-Built for the Google Cloud AI Builder Cup 2026 (BFSI theme). The problem statement is not fixed yet; this repository currently holds the deployable skeleton.
+Built for the Google Cloud AI Builder Cup 2026 (BFSI theme).
+
+**Payment instruction check.** Just before a company approves a bank transfer, it compares the instruction (an email, a chat screenshot, an invoice) with the company's own records and, only when something differs from the usual pattern, tells the approver what to check and whom to call. It targets impersonation: a supplier "whose account changed after a ransomware attack", or a CEO asking for an urgent transfer in a chat app.
+
+- **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code grounds that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, lookalike or unregistered sender domains, unusual channels. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
+- **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them and gives the callback number from the ledger; otherwise a fixed template is used.
+- **People decide.** Nothing blocks the payment. The callback contact always comes from the ledger, never from the message. Originals are not stored, and audit rows keep metadata only.
+
+All companies, banks and domains in the demo data are fictional.
 
 ## Architecture
 
@@ -9,6 +17,13 @@ Browser ──► web (Next.js, Cloud Run, public)
               │  ID token (service-to-service)
               ▼
             agent (Python, ADK, Cloud Run, private) ──► Gemini on Agent Platform (Vertex AI)
+```
+
+The agent runs one ADK `Workflow` per check (`POST /check {"payment_id": ...}`):
+
+```
+START ─► reader (Gemini) ─► check (code) ─┬─ "explain" ─► explainer (Gemini)
+                                          └─ "quiet" ───► end (routine payments: one model call)
 ```
 
 | Layer | Choice |
@@ -21,7 +36,7 @@ Browser ──► web (Next.js, Cloud Run, public)
 | Audit trail | BigQuery (`agent_audit.agent_events`) via ADK `BigQueryAgentAnalyticsPlugin` |
 | CI/CD | GitHub Actions + Workload Identity Federation (no service-account keys) |
 
-Guardrail and audit plugins turn on only when `MODEL_ARMOR_TEMPLATE` / `AUDIT_DATASET` are set, so local dev needs neither.
+Guardrail and audit plugins turn on only when `MODEL_ARMOR_TEMPLATE` / `AUDIT_DATASET` are set, so local dev needs neither. Audit rows redact all content.
 
 ## Local development
 
@@ -40,12 +55,12 @@ npm run dev                # http://localhost:3000, talks to AGENT_URL (default 
 
 Tests: `cd agent && PYTHONPATH=. uv run pytest`, `cd web && npm run lint && npm run build`.
 
-Reader tests that call Gemini are skipped by default. To run them (needs application default credentials):
+Tests that call Gemini are skipped by default. To run them (needs application default credentials):
 
 ```bash
 cd agent
 GOOGLE_GENAI_USE_VERTEXAI=TRUE GOOGLE_CLOUD_PROJECT=<id> GOOGLE_CLOUD_LOCATION=global \
-  RUN_LIVE_GEMINI=1 PYTHONPATH=. uv run pytest tests/test_payguard_reader_live.py
+  RUN_LIVE_GEMINI=1 PYTHONPATH=. uv run pytest tests/test_payguard_reader_live.py tests/test_payguard_pipeline_live.py
 ```
 
 The synthetic image originals are rendered from HTML with `tools/render-originals.sh`.
