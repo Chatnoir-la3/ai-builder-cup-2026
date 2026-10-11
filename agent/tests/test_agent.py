@@ -17,8 +17,13 @@ def test_plugins_follow_env(monkeypatch):
     monkeypatch.setenv("MODEL_ARMOR_TEMPLATE", "projects/p/locations/asia-southeast1/templates/t")
     monkeypatch.setenv("AUDIT_DATASET", "agent_audit")
     monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "p")
-    names = sorted(type(p).__name__ for p in _plugins())
+    plugins = _plugins()
+    names = sorted(type(p).__name__ for p in plugins)
     assert names == ["BigQueryAgentAnalyticsPlugin", "ModelArmorPlugin"]
+
+    audit = next(p for p in plugins if type(p).__name__ == "BigQueryAgentAnalyticsPlugin")
+    assert audit.config.log_multi_modal_content is False
+    assert audit.config.content_formatter("口座：普通 8812345", "LLM_REQUEST") == "[REDACTED]"
 
 
 def test_health():
