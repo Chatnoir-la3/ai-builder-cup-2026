@@ -46,12 +46,21 @@ def good_explanation() -> Explanation:
 # --- check node -------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def web_risk(monkeypatch):
+    """Stand in for Web Risk: Google's test phishing page is listed, nothing else."""
+    from app.payguard import lookups
+
+    monkeypatch.setattr(lookups, "listed", lambda urls: [u for u in urls if "testsafebrowsing.appspot.com" in u])
+
+
 @pytest.mark.parametrize(
     ("payment_id", "route", "codes"),
     [
         ("P-1001", "quiet", []),
         ("P-1002", "explain", ["ACCOUNT_NOT_REGISTERED", "HOLDER_MISMATCH", "SENDER_DOMAIN_LOOKALIKE"]),
         ("P-1003", "explain", ["NEW_PAYEE", "UNUSUAL_CHANNEL"]),
+        ("P-1004", "explain", ["URL_LISTED"]),
     ],
 )
 def test_check_node_routes_by_findings(payment_id, route, codes):
@@ -195,3 +204,10 @@ def test_check_endpoint_rejects_unknown_payment():
 
     res = TestClient(app).post("/check", json={"payment_id": "P-0000"})
     assert res.status_code == 404
+
+
+def test_listed_link_blocks_an_otherwise_routine_payment():
+    state = check_node(faithful_reading("P-1004").model_dump(), "P-1004").actions.state_delta
+    response = respond(demo.scenario_for("P-1004"), dict(state))
+    assert response.tier == "block"
+    assert response.notice is not None and response.notice.action.startswith("This payment cannot be approved")

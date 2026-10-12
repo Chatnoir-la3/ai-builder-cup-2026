@@ -41,7 +41,7 @@ export const NODES: FlowNode[] = [
   { id: "start", kind: "step", role: "data", title: "Payment waits for approval", detail: "Entered in corporate internet banking", built: true, x: SPINE, y: 0 },
   { id: "read", kind: "step", role: "ai", title: "Reader (Gemini)", detail: "Reads the instruction: email, chat, invoice", built: true, x: SPINE, y: 100 },
   { id: "check", kind: "step", role: "code", title: "Rules (code)", detail: "Compare the payment and the instruction with the ledger", built: true, x: SPINE, y: 200 },
-  { id: "external", kind: "decision", title: "Flagged by an external list?", detail: "Web Risk, company registry", built: false, x: DECISION, y: 310 },
+  { id: "external", kind: "decision", title: "Flagged by an external list?", detail: "Google Web Risk, for links", built: true, x: DECISION, y: 310 },
   { id: "differs", kind: "decision", title: "Differs from the ledger?", built: true, x: DECISION, y: 450 },
   { id: "explain", kind: "step", role: "ai", title: "Explainer (Gemini)", detail: "What differs and what to do; code checks the wording", built: true, x: SPINE, y: 590 },
   { id: "has-phone", kind: "decision", title: "Ledger has a number to call?", detail: "A new payee has none", built: true, x: DECISION, y: 690 },
@@ -53,7 +53,7 @@ export const NODES: FlowNode[] = [
   { id: "send", kind: "step", role: "data", title: "Transfer sent", detail: "", built: true, x: SPINE, y: 1190 },
   { id: "recorded", kind: "end", tone: "ok", title: "Account verified in the ledger", detail: "Next time it goes through quietly", built: true, x: END, y: 1290 },
   { id: "quiet", kind: "end", tone: "ok", title: "Approve as usual", detail: "Nothing to show", built: true, x: LEFT, y: 470 },
-  { id: "blocked-list", kind: "end", tone: "stop", title: "Cannot be approved", detail: "An external list flagged it", built: false, x: RIGHT + 20, y: 330 },
+  { id: "blocked-list", kind: "end", tone: "stop", title: "Cannot be approved", detail: "Web Risk lists a link in it", built: true, x: RIGHT + 20, y: 330 },
   { id: "blocked-no-number", kind: "end", tone: "stop", title: "Cannot be approved", detail: "No independent number to check with", built: true, x: RIGHT + 20, y: 960 },
   { id: "held", kind: "end", tone: "hold", title: "Held, not sent", detail: "Likely impersonation; tell the bank", built: true, x: LEFT, y: 970 },
 ];

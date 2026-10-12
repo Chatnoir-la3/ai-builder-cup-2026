@@ -90,5 +90,35 @@
       "account_holder": "ド)ルリカケ",
       "amount": 3000000
     }
+  },
+  {
+    "id": "invoice-portal-link",
+    "title": "A regular invoice whose portal link Web Risk lists as phishing",
+    "originals": [
+      "invoice-portal.email.txt"
+    ],
+    "payment": {
+      "id": "P-1004",
+      "vendor_id": "V002",
+      "payee_name": "株式会社ヒサゴ設備",
+      "account": {
+        "bank_name": "ほしみ信用金庫",
+        "branch_name": "駅前支店",
+        "account_type": "current",
+        "number": "7654321",
+        "holder_kana": "カ)ヒサゴセツビ"
+      },
+      "amount": 1610000,
+      "requested_on": "2026-10-10"
+    },
+    "instruction": {
+      "channel": "email",
+      "sender_name": "ヒサゴ設備 経理部",
+      "sender_address": "keiri@hisago-setsubi.example",
+      "payee_name": "株式会社ヒサゴ設備",
+      "account_number": "7654321",
+      "account_holder": "カ)ヒサゴセツビ",
+      "amount": 1610000
+    }
   }
 ]
