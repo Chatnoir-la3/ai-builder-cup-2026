@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="640" viewBox="0 0 1040 640" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Technology</title>
+  <style>
+    .h { font-size: 20px; font-weight: 700; fill: #18181b; }
+    .m { font-size: 13px; fill: #71717a; }
+    .c { font-size: 12px; font-weight: 600; fill: #71717a; letter-spacing: 0.04em; }
+    .k { font-size: 14px; fill: #52525b; }
+    .t { font-size: 14px; font-weight: 600; fill: #18181b; }
+    .s { font-size: 13.5px; fill: #3f3f46; }
+  </style>
+  <rect width="1040" height="640" fill="#fafafa"/>
+  <text x="32" y="44" class="h">Technology</text>
+  <text x="32" y="66" class="m">What each part does in this app.</text>
+
+  <rect x="32" y="88" width="976" height="528" rx="10" fill="#fff" stroke="#e4e4e7"/>
+  <text x="52" y="116" class="c">LAYER</text>
+  <text x="212" y="116" class="c">CHOICE</text>
+  <text x="552" y="116" class="c">ROLE HERE</text>
+  <line x1="32" y1="128" x2="1008" y2="128" stroke="#e4e4e7"/>
+
+  <g>
+    <text x="52" y="155" class="k">Model</text>
+    <text x="212" y="155" class="t">Gemini 3.8 Flash, Agent Platform</text>
+    <text x="552" y="155" class="s">Reads email text and images; writes the notice</text>
+
+    <text x="52" y="199" class="k">Grounding</text>
+    <text x="212" y="199" class="t">Google Search tool in Gemini</text>
+    <text x="552" y="199" class="s">Finds a new payee's official number</text>
+
+    <text x="52" y="243" class="k">Agent</text>
+    <text x="212" y="243" class="t">Agent Development Kit 2.10</text>
+    <text x="552" y="243" class="s">Workflow: reader → rules → explainer or quiet</text>
+
+    <text x="52" y="287" class="k">Guardrail</text>
+    <text x="212" y="287" class="t">Model Armor</text>
+    <text x="552" y="287" class="s">Screens model input for prompt injection</text>
+
+    <text x="52" y="331" class="k">Threat lists</text>
+    <text x="212" y="331" class="t">Web Risk API</text>
+    <text x="552" y="331" class="s">Blocks a payment whose links Google lists</text>
+
+    <text x="52" y="375" class="k">Data</text>
+    <text x="212" y="375" class="t">Firestore</text>
+    <text x="552" y="375" class="s">Vendor ledger, approval queue, call log</text>
+
+    <text x="52" y="419" class="k">Audit</text>
+    <text x="212" y="419" class="t">BigQuery</text>
+    <text x="552" y="419" class="s">Agent events with all content redacted</text>
+
+    <text x="52" y="463" class="k">Hosting</text>
+    <text x="212" y="463" class="t">Cloud Run, asia-southeast1</text>
+    <text x="552" y="463" class="s">web is public; agent accepts the web's ID token only</text>
+
+    <text x="52" y="507" class="k">Delivery</text>
+    <text x="212" y="507" class="t">GitHub Actions, Cloud Build</text>
+    <text x="552" y="507" class="s">Tests every PR; deploys main with keyless WIF</text>
+
+    <text x="52" y="551" class="k">Frontend</text>
+    <text x="212" y="551" class="t">Next.js 16, Tailwind, shadcn/ui</text>
+    <text x="552" y="551" class="s">Approval queue, How it works, Evaluation</text>
+
+    <text x="52" y="595" class="k">Tests</text>
+    <text x="212" y="595" class="t">pytest, Vitest</text>
+    <text x="552" y="595" class="s">Unit and API tests; 28-case evaluation set</text>
+  </g>
+  <path d="M32 172H1008M32 216H1008M32 260H1008M32 304H1008M32 348H1008M32 392H1008M32 436H1008M32 480H1008M32 524H1008M32 568H1008" stroke="#f4f4f5"/>
+</svg>
