@@ -150,3 +150,41 @@ export type EvalCaseDetail = EvalCase & {
   reasons: { code: FindingCode; text: string }[];
   verify_with: Contact | null;
 };
+
+export type ReadOutcome = "correct" | "cleared" | "missed" | "wrong";
+export type ReadField = "channel" | "sender_name" | "sender_address" | "account_number" | "amount";
+
+export type ReadingCase = {
+  id: string;
+  title: string;
+  note: string;
+  originals: string[];
+  fields: {
+    field: ReadField;
+    expected: string | number | null;
+    outcomes: ReadOutcome[];
+    read: (string | number | null)[];
+  }[];
+  same_findings: number;
+  runs: number;
+  failed: number;
+  seconds: number[];
+};
+
+export type ReadingSummary = {
+  model: string;
+  run_on: string;
+  cases: number;
+  runs: number;
+  values: number;
+  correct: number;
+  cleared: number;
+  missed: number;
+  wrong: number;
+  same_findings: number;
+  failed: number;
+  median_seconds: number;
+  max_seconds: number;
+};
+
+export type ReadingEvaluation = { summary: ReadingSummary; cases: ReadingCase[] };

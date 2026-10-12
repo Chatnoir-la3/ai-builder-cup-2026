@@ -4,7 +4,7 @@ Each case gives a payment, what its instruction says, the ledger, and what the l
 (Web Risk, company registry, domain age, the payee's official number). The lookups are given, not
 fetched, so the result is the rules' alone and repeatable. `ledger`, `added` and `tier` are what we expect:
 the findings from the ledger alone, the findings the lookups add, and the tier with them.
-The reader (Gemini) is evaluated separately, on the demo originals (tests/test_payguard_reader_live.py).
+The reader (Gemini) is evaluated separately, on originals it must read (readereval.py).
 """
 
 from dataclasses import dataclass, field

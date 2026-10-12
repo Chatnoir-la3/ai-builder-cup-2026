@@ -1,0 +1,11 @@
+From: ツバクロ建材 営業部 田中 <tanaka@tsubakur0-kenzai.example>
+To: 鈴木 花子 <suzuki@miori-koumuten.example>
+Date: Wed, 7 Oct 2026 18:47:00 +0900
+Subject: 10月分ご請求書の送付
+
+鈴木様
+
+10月分のご請求書を添付にてお送りいたします。
+今月から振込先が変わっておりますので、請求書記載の口座へお願いいたします。
+
+ツバクロ建材株式会社 営業部 田中
