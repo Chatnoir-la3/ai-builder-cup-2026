@@ -18,7 +18,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-export function AppSidebar({ pending }: { pending: number | null }) {
+export function AppSidebar({ pending, actingAs }: { pending: number | null; actingAs: string | null }) {
   const pathname = usePathname();
   return (
     <Sidebar>
@@ -76,10 +76,12 @@ export function AppSidebar({ pending }: { pending: number | null }) {
       </SidebarContent>
       <SidebarFooter>
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">鈴木</div>
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+            {actingAs ? actingAs.split(" ")[0] : "?"}
+          </div>
           <div className="leading-tight">
-            <div className="text-sm font-medium">鈴木 花子</div>
-            <div className="text-xs text-muted-foreground">Accounts payable · fictional data</div>
+            <div className="text-sm font-medium">{actingAs ?? "Not chosen yet"}</div>
+            <div className="text-xs text-muted-foreground">Acting as, in this browser · fictional data</div>
           </div>
         </div>
       </SidebarFooter>

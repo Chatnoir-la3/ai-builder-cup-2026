@@ -110,21 +110,17 @@ function PersonSelect({
 function NoticeCard({
   check,
   detail,
-  caller,
-  approver,
+  actingAs,
   busy,
-  onCaller,
-  onApprover,
+  onActingAs,
   onLogCall,
   onRetry,
 }: {
   check: CheckState;
   detail: PaymentDetail;
-  caller: string;
-  approver: string;
+  actingAs: string;
   busy: boolean;
-  onCaller: (v: string) => void;
-  onApprover: (v: string) => void;
+  onActingAs: (v: string) => void;
   onLogCall: (confirmed: boolean) => void;
   onRetry: () => void;
 }) {
@@ -281,6 +277,11 @@ function NoticeCard({
         )}
 
         <div className="flex flex-col gap-2">
+          <div className="text-sm font-medium">Who you are, in this browser</div>
+          <PersonSelect value={actingAs} people={detail.approvers} placeholder="Choose who you are" onChange={onActingAs} />
+        </div>
+
+        <div className="flex flex-col gap-2">
           <div className="text-sm font-medium">1. Call and record the answer</div>
           {confirmed ? (
             <div className="flex items-center gap-2 text-sm text-emerald-800">
@@ -298,13 +299,12 @@ function NoticeCard({
               <div className="text-sm text-muted-foreground">
                 Ask them to confirm account {detail.payment.account.number} and {formatYen(detail.payment.amount)}.
               </div>
-              <PersonSelect value={caller} people={detail.approvers} placeholder="Who is calling" onChange={onCaller} />
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   className="bg-background"
-                  disabled={!caller || busy}
+                  disabled={!actingAs || busy}
                   onClick={() => onLogCall(true)}
                 >
                   They confirmed it
@@ -313,7 +313,7 @@ function NoticeCard({
                   size="sm"
                   variant="outline"
                   className="bg-background"
-                  disabled={!caller || busy}
+                  disabled={!actingAs || busy}
                   onClick={() => onLogCall(false)}
                 >
                   They did not
@@ -325,13 +325,13 @@ function NoticeCard({
 
         <div className="flex flex-col gap-2">
           <div className="text-sm font-medium">2. Second approval, by someone else</div>
-          <PersonSelect
-            value={approver}
-            people={detail.approvers.filter((p) => p !== call?.by)}
-            placeholder="Second approver"
-            disabled={!confirmed}
-            onChange={onApprover}
-          />
+          <p className="text-sm text-muted-foreground">
+            {!confirmed
+              ? "After a confirmed call, someone other than the caller approves."
+              : actingAs === call.by
+                ? `You made the call. ${call.by} cannot also approve: open this payment in a private window or another browser, choose someone else, and approve there.`
+                : `Approve as ${actingAs}. It must be a different browser from the one the call was logged in.`}
+          </p>
         </div>
 
         <p className="text-xs text-muted-foreground">
@@ -342,12 +342,11 @@ function NoticeCard({
   );
 }
 
-export function PaymentReview({ initial }: { initial: PaymentDetail }) {
+export function PaymentReview({ initial, actingAs: initialActingAs }: { initial: PaymentDetail; actingAs: string | null }) {
   const router = useRouter();
   const { payment, status } = initial;
   const [check, setCheck] = useState<CheckState>(status === "pending" ? { state: "running" } : { state: "skipped" });
-  const [caller, setCaller] = useState("");
-  const [approver, setApprover] = useState("");
+  const [actingAs, setActingAs] = useState(initialActingAs ?? "");
   const [showAll, setShowAll] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
@@ -391,7 +390,18 @@ export function PaymentReview({ initial }: { initial: PaymentDetail }) {
     }
   }
 
-  const decide = (decision: "approved" | "held") => post("decision", { decision, approver: approver || null });
+  const decide = (decision: "approved" | "held") => post("decision", { decision });
+
+  async function chooseActingAs(name: string) {
+    setActingAs(name);
+    const res = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actingAs: name }),
+    }).catch(() => null);
+    if (!res?.ok) setDecisionError("Who you are was not saved.");
+    else router.refresh();
+  }
 
   const result = check.state === "done" ? check.result : null;
   const codes = new Set(result?.findings.map((f) => f.code) ?? []);
@@ -400,7 +410,7 @@ export function PaymentReview({ initial }: { initial: PaymentDetail }) {
   const call = initial.call;
   const ready =
     result?.tier === "pass" ||
-    (result?.tier === "verify" && call?.confirmed === true && approver !== "" && approver !== call.by);
+    (result?.tier === "verify" && call?.confirmed === true && actingAs !== "" && actingAs !== call.by);
   const canApprove = status === "pending" && ready && !deciding;
 
   return (
@@ -508,12 +518,10 @@ export function PaymentReview({ initial }: { initial: PaymentDetail }) {
               <NoticeCard
                 check={check}
                 detail={initial}
-                caller={caller}
-                approver={approver}
+                actingAs={actingAs}
                 busy={deciding}
-                onCaller={setCaller}
-                onApprover={setApprover}
-                onLogCall={(confirmed) => post("call", { by: caller, confirmed })}
+                onActingAs={chooseActingAs}
+                onLogCall={(confirmed) => post("call", { confirmed })}
                 onRetry={runCheck}
               />
               <Card>
