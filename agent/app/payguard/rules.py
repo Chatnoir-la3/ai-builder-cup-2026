@@ -3,21 +3,27 @@
 The model only reads the original document into an `Instruction`; every decision is made here.
 Checks rely on facts that are hard for a fraudster to change (account history, registered domains,
 how a person usually instructs payments), not on wording such as "urgent" or "confidential".
+Facts from outside the ledger (Web Risk, the company registry, domain age) arrive as `Lookups`,
+fetched before the check, so the check itself stays deterministic.
 """
 
 import re
 import unicodedata
 
-from .models import CHANNEL_NAMES, BankAccount, CheckResult, Contact, Finding, Instruction, Ledger, Payment, Person, Vendor
+from .models import CHANNEL_NAMES, BankAccount, CheckResult, Contact, Finding, Instruction, Ledger, Lookups, Payment, Person, Vendor
 
 RECENT_DAYS = 30
 AMOUNT_RATIO = 1.5
 MIN_HISTORY = 3
 LOOKALIKE_DISTANCE = 2
+NEW_DOMAIN_DAYS = 90
+NEW_COMPANY_DAYS = 365
 
 _LEGAL_FORMS = re.compile(r"[(（]?(?:カ|ユ|ド|ゴ|メ|シヤ|ザイ)[)）]|[(（](?:カ|ユ|ド|ゴ|メ)$")
 _SMALL_KANA = str.maketrans("ァィゥェォッャュョヮ", "アイウエオツヤユヨワ")
 _HOMOGLYPHS = (("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"))
+_COMPANY_NAME = re.compile(r"株式会社|有限会社|合同会社|合資会社|合名会社")
+_HOLDER_LEGAL_FORM = re.compile(r"[(（)）](?:カ|ユ|ド|ゴ|メ|シヤ|ザイ)|(?:カ|ユ|ド|ゴ|メ|シヤ|ザイ)[)）]")
 
 
 def normalize_holder(name: str) -> str:
@@ -87,7 +93,9 @@ def _account_findings(ledger: Ledger, payment: Payment, vendor: Vendor | None) -
     paid_before = any(
         h.vendor_id == vendor.id and _digits(h.account_number) == _digits(payment.account.number) for h in ledger.history
     )
-    if registered.registered_on and not paid_before:
+    if paid_before or registered.verified_on is not None:
+        return []  # confirmed by payment history or by a logged callback to the ledger contact
+    if registered.registered_on:
         age = (payment.requested_on - registered.registered_on).days
         if age <= RECENT_DAYS:
             return [
@@ -97,11 +105,23 @@ def _account_findings(ledger: Ledger, payment: Payment, vendor: Vendor | None) -
                     fields=["account_number"],
                 )
             ]
-    return []
+    # Never paid and never confirmed by a callback: however old the entry, it may have been planted.
+    return [Finding(code="ACCOUNT_UNVERIFIED", facts={"vendor": vendor.name}, fields=["account_number"])]
 
 
 def _holder_findings(payment: Payment, vendor: Vendor | None) -> list[Finding]:
-    if vendor is None or normalize_holder(payment.account.holder_kana) == normalize_holder(vendor.holder_kana):
+    if vendor is None:
+        holder = unicodedata.normalize("NFKC", payment.account.holder_kana)
+        if _COMPANY_NAME.search(payment.payee_name) and not _HOLDER_LEGAL_FORM.search(holder):
+            return [
+                Finding(
+                    code="HOLDER_NOT_COMPANY",
+                    facts={"payee": payment.payee_name, "actual": payment.account.holder_kana},
+                    fields=["account_holder"],
+                )
+            ]
+        return []
+    if normalize_holder(payment.account.holder_kana) == normalize_holder(vendor.holder_kana):
         return []
     return [
         Finding(
@@ -176,7 +196,29 @@ def _instruction_findings(payment: Payment, ins: Instruction) -> list[Finding]:
     return [Finding(code="INSTRUCTION_MISMATCH", facts=diffs, fields=fields)] if diffs else []
 
 
-def check(ledger: Ledger, payment: Payment, ins: Instruction) -> CheckResult:
+def _lookup_findings(payment: Payment, ins: Instruction, vendor: Vendor | None, lookups: Lookups) -> list[Finding]:
+    findings = [Finding(code="URL_LISTED", facts={"url": url}) for url in lookups.listed_urls]
+    domain = _email_domain(ins.sender_address)
+    if ins.channel == "email" and domain and lookups.domain_age_days is not None and lookups.domain_age_days < NEW_DOMAIN_DAYS:
+        findings.append(
+            Finding(code="NEW_DOMAIN", facts={"domain": domain, "days": lookups.domain_age_days}, fields=["sender_address"])
+        )
+    if vendor is None:
+        if lookups.company_found is False:
+            findings.append(Finding(code="COMPANY_NOT_FOUND", facts={"payee": payment.payee_name}, fields=["payee_name"]))
+        elif lookups.company_age_days is not None and lookups.company_age_days < NEW_COMPANY_DAYS:
+            findings.append(
+                Finding(
+                    code="NEW_COMPANY",
+                    facts={"payee": payment.payee_name, "days": lookups.company_age_days},
+                    fields=["payee_name"],
+                )
+            )
+    return findings
+
+
+def check(ledger: Ledger, payment: Payment, ins: Instruction, lookups: Lookups | None = None) -> CheckResult:
+    lookups = lookups or Lookups()
     vendor = next((v for v in ledger.vendors if v.id == payment.vendor_id), None)
     person = _sender_person(ledger, ins)
 
@@ -195,6 +237,9 @@ def check(ledger: Ledger, payment: Payment, ins: Instruction) -> CheckResult:
         verify_with = vendor.contact
     else:
         findings += _domain_findings(ledger, ins, [])
+        if lookups.official_contact is not None:
+            verify_with = lookups.official_contact.model_copy(update={"source": "official"})
 
     findings += _instruction_findings(payment, ins)
+    findings += _lookup_findings(payment, ins, vendor, lookups)
     return CheckResult(findings=findings, verify_with=verify_with)

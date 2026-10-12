@@ -171,7 +171,9 @@ function NoticeCard({
 
         {contact && (
           <div className="rounded-md border bg-background p-3">
-            <div className="text-xs text-muted-foreground">From your vendor ledger, not from the message</div>
+            <div className="text-xs text-muted-foreground">
+              {contact.source === "official" ? "The payee's official number" : "From your vendor ledger"}, not from the message
+            </div>
             <div className="mt-1 flex items-center gap-2 font-medium">
               <Phone className="size-4" />
               <a href={`tel:${contact.phone}`} className="tabular-nums underline-offset-2 hover:underline">

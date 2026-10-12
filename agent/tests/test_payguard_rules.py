@@ -77,6 +77,20 @@ def test_recently_registered_account_never_paid():
     assert found[0].facts["days_ago"] == 9
 
 
+def test_recent_account_confirmed_by_callback_is_quiet():
+    payment, ins = scenario("routine-invoice")
+    vendor = LEDGER.vendors[0]
+    new_account = payment.account.model_copy(
+        update={"number": "1111111", "registered_on": date(2026, 10, 1), "verified_on": date(2026, 10, 1)}
+    )
+    ledger = LEDGER.model_copy(
+        update={"vendors": [vendor.model_copy(update={"accounts": [*vendor.accounts, new_account]}), *LEDGER.vendors[1:]]}
+    )
+    payment = payment.model_copy(update={"account": new_account})
+    ins = ins.model_copy(update={"account_number": "1111111"})
+    assert check(ledger, payment, ins).findings == []
+
+
 def test_instruction_and_payment_disagree():
     payment, ins = scenario("routine-invoice")
     ins = ins.model_copy(update={"account_number": "1234568", "amount": 426000})

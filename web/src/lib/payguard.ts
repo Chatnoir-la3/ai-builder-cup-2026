@@ -11,7 +11,13 @@ export type FindingCode =
   | "SENDER_DOMAIN_LOOKALIKE"
   | "SENDER_DOMAIN_UNREGISTERED"
   | "UNUSUAL_CHANNEL"
-  | "INSTRUCTION_MISMATCH";
+  | "INSTRUCTION_MISMATCH"
+  | "ACCOUNT_UNVERIFIED"
+  | "URL_LISTED"
+  | "COMPANY_NOT_FOUND"
+  | "NEW_COMPANY"
+  | "HOLDER_NOT_COMPANY"
+  | "NEW_DOMAIN";
 export type InstructionField =
   | "sender_name"
   | "sender_address"
@@ -70,7 +76,7 @@ export type Evidence = {
 
 export type Finding = { code: FindingCode; facts: Record<string, string | number>; fields: InstructionField[] };
 
-export type Contact = { name: string; phone: string };
+export type Contact = { name: string; phone: string; source: "ledger" | "official" };
 
 export type Notice = { action: string; reasons: { code: FindingCode; text: string }[]; source: "model" | "template" };
 
