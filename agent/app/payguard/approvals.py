@@ -5,6 +5,9 @@ The tier from the rules decides what approval needs; code enforces it, the model
 - verify: someone calls the number from the check (the ledger's, or one found by Google Search) and logs
   the result; a second person, not the caller, then approves. An unconfirmed call puts it on hold.
 - block: it cannot be approved.
+A call records the account and amount the payee was asked to confirm; if the transfer or the number to
+call changes, the call no longer counts. Once a payment is decided, a later check does not change what
+the decision was based on.
 An approval is recorded in the ledger (see ledger). Decisions are logged as structured lines with
 codes only, never the originals or names.
 """
@@ -18,7 +21,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from . import demo, ledger
-from .models import CHANNEL_NAMES, CheckResult, Contact, Tier
+from .models import CHANNEL_NAMES, CheckResult, Contact, Payment, Tier
 from .storage import QUEUE, backend
 
 JST = timezone(timedelta(hours=9))
@@ -39,6 +42,9 @@ class CallLog(BaseModel):
     at: datetime
     contact: Contact  # always the contact from the check, never one typed in
     confirmed: bool
+    # The transfer the payee was asked about; None on calls logged before this was recorded.
+    account_number: str | None = None
+    amount: int | None = None
 
 
 class QueueItem(BaseModel):
@@ -62,6 +68,14 @@ def _received(scenario: demo.Scenario) -> HistoryItem:
     at = datetime.combine(scenario.payment.requested_on, time(9, 0), tzinfo=JST)
     channel = CHANNEL_NAMES[scenario.instruction.channel]
     return HistoryItem(at=at, event="received", detail=f"Payment request with an instruction by {channel}")
+
+
+def _transfer(payment: Payment) -> str:
+    return f"account {payment.account.number}, ¥{payment.amount:,}"
+
+
+def _same_transfer(call: CallLog, payment: Payment) -> bool:
+    return (call.account_number, call.amount) == (payment.account.number, payment.amount)
 
 
 def _number_from(contact: Contact) -> str:
@@ -97,10 +111,13 @@ class ApprovalStore:
         detail = f"{len(codes)} point(s) differ from the usual pattern" if codes else "Nothing differs from the usual pattern"
         if result.tier == "block":
             detail += "; cannot be approved"
+        payment = demo.scenario_for(payment_id).payment
         with self._lock:
             item = self._load(payment_id)
-            if item.call and item.call.contact != result.verify_with:
-                item.call = None  # a call to a different number no longer counts
+            if item.status != "pending":
+                return  # decided: keep the check the decision was based on
+            if item.call and (item.call.contact != result.verify_with or not _same_transfer(item.call, payment)):
+                item.call = None  # a call about a different number or transfer no longer counts
             item.findings, item.tier, item.verify_with = codes, result.tier, result.verify_with
             item.history.append(HistoryItem(at=datetime.now(JST), event="checked", detail=detail))
             self._save(payment_id, item)
@@ -115,11 +132,18 @@ class ApprovalStore:
             if by not in approvers():
                 raise DecisionError("Choose who made the call.")
             contact = item.verify_with
+            payment = demo.scenario_for(payment_id).payment
             now = datetime.now(JST)
-            item.call = CallLog(by=by, at=now, contact=contact, confirmed=confirmed)
-            result = "confirmed the request" if confirmed else "did not confirm the request"
+            item.call = CallLog(
+                by=by, at=now, contact=contact, confirmed=confirmed, account_number=payment.account.number, amount=payment.amount
+            )
+            result = "confirmed" if confirmed else "did not confirm"
             item.history.append(
-                HistoryItem(at=now, event="called", detail=f"{by} called {contact.name} on {_number_from(contact)}: {result}")
+                HistoryItem(
+                    at=now,
+                    event="called",
+                    detail=f"{by} called {contact.name} on {_number_from(contact)}: {result} {_transfer(payment)}",
+                )
             )
             if not confirmed:
                 item.status = "held"

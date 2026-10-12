@@ -86,7 +86,15 @@ export type Finding = { code: FindingCode; facts: Record<string, string | number
 // source "official": found by Google Search on `page`, not proof the page is the payee's.
 export type Contact = { name: string; phone: string; source: "ledger" | "official"; page?: string | null };
 
-export type CallLog = { by: string; at: string; contact: Contact; confirmed: boolean };
+export type CallLog = {
+  by: string;
+  at: string;
+  contact: Contact;
+  confirmed: boolean;
+  // The transfer the payee was asked about; null on calls logged before it was recorded.
+  account_number?: string | null;
+  amount?: number | null;
+};
 
 export type Notice = { action: string; reasons: { code: FindingCode; text: string }[]; source: "model" | "template" };
 

@@ -286,9 +286,18 @@ function NoticeCard({
             <div className="flex items-center gap-2 text-sm text-emerald-800">
               <CheckCircle2 className="size-4" />
               {call.by} called at {formatDayTime(call.at)}: confirmed
+              {call.account_number && call.amount != null && (
+                <>
+                  {" "}
+                  account {call.account_number}, {formatYen(call.amount)}
+                </>
+              )}
             </div>
           ) : (
             <>
+              <div className="text-sm text-muted-foreground">
+                Ask them to confirm account {detail.payment.account.number} and {formatYen(detail.payment.amount)}.
+              </div>
               <PersonSelect value={caller} people={detail.approvers} placeholder="Who is calling" onChange={onCaller} />
               <div className="flex flex-wrap gap-2">
                 <Button
