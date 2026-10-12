@@ -113,7 +113,7 @@ def _template_reason(f: Finding) -> str:
         case "NOT_IN_ORIGINAL":
             return f"Not confirmed in the original, so not checked against your records: {x['fields']}."
         case "LOOKUP_FAILED":
-            return f"{x['lookup']} could not be reached, so the links in the instruction were not checked."
+            return f"{x['lookup']} could not check every link in the instruction."
     return "This payment differs from your usual pattern."
 
 
