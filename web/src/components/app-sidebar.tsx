@@ -1,6 +1,6 @@
 "use client";
 
-import { ListChecks, ShieldCheck } from "lucide-react";
+import { ListChecks, ShieldCheck, Workflow } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -46,6 +46,21 @@ export function AppSidebar({ pending }: { pending: number | null }) {
                   </Link>
                 </SidebarMenuButton>
                 {pending !== null && <SidebarMenuBadge>{pending}</SidebarMenuBadge>}
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>About</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/how-it-works")}>
+                  <Link href="/how-it-works">
+                    <Workflow />
+                    <span>How it works</span>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
