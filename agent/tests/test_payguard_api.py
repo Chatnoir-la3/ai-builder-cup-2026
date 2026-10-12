@@ -47,7 +47,7 @@ def test_list_starts_pending_and_unchecked():
 
 def test_detail_includes_text_originals_inline_and_images_by_name():
     d = client.get("/demo/payments/P-1001").json()
-    assert d["vendor_name"] == "山田建材株式会社"
+    assert d["vendor_name"] == "ツバクロ建材株式会社"
     names = {o["name"]: o for o in d["originals"]}
     assert "462,000円" in names["routine-invoice.email.txt"]["text"]
     assert names["routine-invoice.invoice.png"]["text"] is None

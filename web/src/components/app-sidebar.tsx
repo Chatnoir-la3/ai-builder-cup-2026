@@ -29,7 +29,7 @@ export function AppSidebar({ pending }: { pending: number | null }) {
           </div>
           <div className="leading-tight">
             <div className="text-sm font-semibold">Payment check</div>
-            <div className="text-xs text-muted-foreground">株式会社かえで工務店</div>
+            <div className="text-xs text-muted-foreground">株式会社ミオリ工務店</div>
           </div>
         </div>
       </SidebarHeader>
@@ -71,7 +71,7 @@ export function AppSidebar({ pending }: { pending: number | null }) {
           <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">鈴木</div>
           <div className="leading-tight">
             <div className="text-sm font-medium">鈴木 花子</div>
-            <div className="text-xs text-muted-foreground">Accounts payable · demo data</div>
+            <div className="text-xs text-muted-foreground">Accounts payable · fictional data</div>
           </div>
         </div>
       </SidebarFooter>

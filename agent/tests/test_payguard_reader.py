@@ -25,11 +25,11 @@ def test_build_content_labels_each_source():
 
 def test_supported_values_are_kept():
     r = reading(
-        {"channel": "email", "account_number": "8812345", "amount": 486000, "account_holder": "ヤマダ タロウ"},
+        {"channel": "email", "account_number": "8812345", "amount": 486000, "account_holder": "オカノ タロウ"},
         [
             {"field": "account_number", "source": 1, "quote": "口座：普通 8812345"},
             {"field": "amount", "source": 1, "quote": "ご請求金額：486,000円（税込）"},
-            {"field": "account_holder", "source": 1, "quote": "口座名義：ヤマダ タロウ", "box_2d": [1, 2, 3, 4]},
+            {"field": "account_holder", "source": 1, "quote": "口座名義：オカノ タロウ", "box_2d": [1, 2, 3, 4]},
         ],
     )
     g = ground(r, [EMAIL])
