@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="780" viewBox="0 0 1040 780" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Approval flow</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#71717a"/>
+    </marker>
+  </defs>
+  <style>
+    .t { font-size: 15px; font-weight: 600; fill: #18181b; }
+    .s { font-size: 12.5px; fill: #52525b; }
+    .h { font-size: 20px; font-weight: 700; fill: #18181b; }
+    .m { font-size: 13px; fill: #71717a; }
+    .k { font-size: 12.5px; font-weight: 600; fill: #52525b; }
+    .c { font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; }
+    .line { stroke: #a1a1aa; stroke-width: 1.5; fill: none; }
+  </style>
+  <rect width="1040" height="780" fill="#fafafa"/>
+  <text x="32" y="44" class="h">Approval flow</text>
+  <text x="32" y="66" class="m">Every branch is a rule in code. The tier decides what the approver must do before a transfer is sent.</text>
+
+  <!-- spine -->
+  <rect x="370" y="92" width="300" height="48" rx="8" fill="#fff" stroke="#d4d4d8"/>
+  <text x="520" y="114" class="t" text-anchor="middle">Payment waits for approval</text>
+  <text x="520" y="131" class="s" text-anchor="middle">Entered in corporate internet banking</text>
+  <line x1="520" y1="140" x2="520" y2="158" class="line" marker-end="url(#a)"/>
+
+  <rect x="370" y="160" width="300" height="52" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="520" y="183" class="t" text-anchor="middle" fill="#1d4ed8">Reader · Gemini</text>
+  <text x="520" y="201" class="s" text-anchor="middle">Reads the instruction, quotes its evidence</text>
+  <line x1="520" y1="212" x2="520" y2="230" class="line" marker-end="url(#a)"/>
+
+  <rect x="340" y="232" width="360" height="62" rx="8" fill="#f4f4f5" stroke="#18181b"/>
+  <text x="520" y="255" class="t" text-anchor="middle">Rules · code</text>
+  <text x="520" y="273" class="s" text-anchor="middle">Compare with the ledger; look up links, domain age</text>
+  <text x="520" y="288" class="s" text-anchor="middle">and, for a new payee, the official number</text>
+
+  <!-- branches -->
+  <path d="M520 294V312H180V340" class="line" marker-end="url(#a)"/>
+  <path d="M520 294V340" class="line" marker-end="url(#a)"/>
+  <path d="M520 312H855V340" class="line" marker-end="url(#a)"/>
+  <text x="188" y="332" class="k">Nothing differs</text>
+  <text x="530" y="332" class="k">Something differs</text>
+  <text x="863" y="332" class="k">Blocking finding</text>
+
+  <!-- left lane -->
+  <rect x="40" y="344" width="280" height="70" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="56" y="370" class="t" fill="#047857">Approve as usual</text>
+  <text x="56" y="390" class="s">Nothing is shown. One model call.</text>
+  <text x="304" y="370" class="c" text-anchor="end" fill="#047857">PASS</text>
+
+  <!-- right lane -->
+  <rect x="720" y="344" width="280" height="104" rx="8" fill="#fef2f2" stroke="#fca5a5"/>
+  <text x="736" y="370" class="t" fill="#b91c1c">Cannot be approved</text>
+  <text x="736" y="390" class="s">Web Risk lists a link in it, or there</text>
+  <text x="736" y="406" class="s">is no independent number to call:</text>
+  <text x="736" y="422" class="s">the ledger has none and no official</text>
+  <text x="736" y="438" class="s">number could be confirmed.</text>
+  <text x="984" y="370" class="c" text-anchor="end" fill="#b91c1c">BLOCK</text>
+
+  <!-- middle lane -->
+  <rect x="370" y="344" width="300" height="52" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="520" y="367" class="t" text-anchor="middle" fill="#1d4ed8">Explainer · Gemini</text>
+  <text x="520" y="385" class="s" text-anchor="middle">What differs, whom to call; code checks it</text>
+  <line x1="520" y1="396" x2="520" y2="416" class="line" marker-end="url(#a)"/>
+
+  <rect x="370" y="418" width="300" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="520" y="441" class="t" text-anchor="middle" fill="#b45309">Approver calls</text>
+  <text x="520" y="459" class="s" text-anchor="middle">The ledger contact or the official number,</text>
+  <text x="520" y="475" class="s" text-anchor="middle">never a number in the message.</text>
+  <text x="656" y="441" class="c" text-anchor="end" fill="#b45309">VERIFY</text>
+  <line x1="520" y1="482" x2="520" y2="520" class="line" marker-end="url(#a)"/>
+  <text x="530" y="506" class="k">Confirmed</text>
+
+  <path d="M370 450H180V520" class="line" marker-end="url(#a)"/>
+  <text x="188" y="442" class="k">Not confirmed</text>
+  <rect x="40" y="522" width="280" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="56" y="548" class="t" fill="#b45309">Held, not sent</text>
+  <text x="56" y="568" class="s">Likely impersonation: tell the bank</text>
+
+  <rect x="370" y="522" width="300" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="520" y="545" class="t" text-anchor="middle" fill="#b45309">Call logged, second approval</text>
+  <text x="520" y="563" class="s" text-anchor="middle">Who called, when, which number.</text>
+  <text x="520" y="579" class="s" text-anchor="middle">The second approver is not the caller.</text>
+  <line x1="520" y1="586" x2="520" y2="624" class="line" marker-end="url(#a)"/>
+
+  <rect x="370" y="626" width="300" height="64" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="520" y="649" class="t" text-anchor="middle" fill="#047857">Sent, and recorded in the ledger</text>
+  <text x="520" y="667" class="s" text-anchor="middle">The payment joins the history;</text>
+  <text x="520" y="683" class="s" text-anchor="middle">a confirmed account is marked verified.</text>
+
+  <!-- loop -->
+  <path d="M670 658H1016V263H704" class="line" stroke-dasharray="5 4" marker-end="url(#a)"/>
+  <text x="1008" y="648" class="s" text-anchor="end">Next payment to this account passes quietly</text>
+
+  <!-- legend -->
+  <g transform="translate(40 722)">
+    <rect width="14" height="14" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="22" y="12" class="s">Gemini</text>
+    <rect x="96" width="14" height="14" rx="3" fill="#f4f4f5" stroke="#18181b"/>
+    <text x="118" y="12" class="s">Code</text>
+    <rect x="180" width="14" height="14" rx="3" fill="#fffbeb" stroke="#fcd34d"/>
+    <text x="202" y="12" class="s">People</text>
+    <text x="270" y="12" class="s">Pass, Verify and Block are the tiers the approval queue shows.</text>
+  </g>
+</svg>
