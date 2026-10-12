@@ -84,12 +84,16 @@ def test_routine_payment_approves_after_check(fake_check):
 AP, CEO = "鈴木 花子", "佐藤 一郎"
 
 
-def approve(payment_id: str, approver: str | None = None):
-    return client.post(f"/demo/payments/{payment_id}/decision", json={"decision": "approved", "approver": approver})
+CALLER_SESSION, APPROVER_SESSION = "caller-session-0001", "approver-session-0002"
 
 
-def call(payment_id: str, by: str, confirmed: bool):
-    return client.post(f"/demo/payments/{payment_id}/call", json={"by": by, "confirmed": confirmed})
+def approve(payment_id: str, approver: str | None = None, session: str = APPROVER_SESSION):
+    body = {"decision": "approved", "approver": approver, "session": session}
+    return client.post(f"/demo/payments/{payment_id}/decision", json=body)
+
+
+def call(payment_id: str, by: str, confirmed: bool, session: str = CALLER_SESSION):
+    return client.post(f"/demo/payments/{payment_id}/call", json={"by": by, "confirmed": confirmed, "session": session})
 
 
 def test_flagged_payment_needs_a_confirmed_call_and_a_second_person(fake_check):
@@ -241,3 +245,20 @@ def test_a_decided_payment_keeps_the_check_it_was_decided_on(fake_check):
     store.checked("P-1001", CheckResult(findings=[Finding(code="NEW_PAYEE", facts={"payee": "x"})], verify_with=None))
     after = store.get("P-1001")
     assert after == before and after.tier == "pass" and after.findings == []
+
+
+def test_second_approval_must_come_from_another_session(fake_check):
+    client.post("/check", json={"payment_id": "P-1002"})
+    call("P-1002", AP, True)
+    res = approve("P-1002", CEO, session=CALLER_SESSION)  # another name, same browser
+    assert res.status_code == 409 and "another browser" in res.json()["detail"]
+    assert approve("P-1002", CEO).json()["status"] == "approved"
+
+
+def test_session_is_required_and_never_shown(fake_check):
+    client.post("/check", json={"payment_id": "P-1002"})
+    no_session = client.post("/demo/payments/P-1002/call", json={"by": AP, "confirmed": True})
+    assert no_session.status_code == 422
+    d = call("P-1002", AP, True).json()
+    assert CALLER_SESSION not in str(d) and "caller_session" not in str(d)
+    assert client.post("/demo/payments/P-1002/decision", json={"decision": "approved", "approver": CEO}).status_code == 409

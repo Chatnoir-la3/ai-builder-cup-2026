@@ -1,20 +1,23 @@
 import { agentFetch } from "@/lib/agent";
 import { allow, clientIp } from "@/lib/rate-limit";
+import { readSession } from "@/lib/session";
 
 export async function POST(request: Request, ctx: RouteContext<"/api/payments/[id]/decision">) {
   const { id } = await ctx.params;
   if (!allow(`decision:${clientIp(request)}`, 60, 10 * 60_000)) {
     return Response.json({ error: "Too many requests. Try again in a few minutes." }, { status: 429 });
   }
-  const body = (await request.json().catch(() => null)) as { decision?: unknown; approver?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { decision?: unknown } | null;
   const decision = body?.decision;
   if (decision !== "approved" && decision !== "held") {
     return Response.json({ error: "invalid request" }, { status: 400 });
   }
+  // The approver is whoever this browser acts as; the agent checks it is not the caller's session.
+  const { session, actingAs } = await readSession();
   try {
     const res = await agentFetch(`/demo/payments/${encodeURIComponent(id)}/decision`, {
       method: "POST",
-      body: JSON.stringify({ decision, approver: typeof body?.approver === "string" ? body.approver : null }),
+      body: JSON.stringify({ decision, approver: actingAs, session }),
     });
     const data = (await res.json().catch(() => ({}))) as { detail?: string };
     if (!res.ok) return Response.json({ error: data.detail ?? "The decision was not saved." }, { status: res.status });

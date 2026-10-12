@@ -5,6 +5,9 @@ The tier from the rules decides what approval needs; code enforces it, the model
 - verify: someone calls the number from the check (the ledger's, or one found by Google Search) and logs
   the result; a second person, not the caller, then approves. An unconfirmed call puts it on hold.
 - block: it cannot be approved.
+Who calls and who approves come with the browser session they act from, and the second approval must
+come from a different session than the call: one person needs another browser or device to play both.
+There is no sign-in yet, so a session shows separation, not identity.
 A call records the account and amount the payee was asked to confirm; if the transfer or the number to
 call changes, the call no longer counts. Once a payment is decided, a later check does not change what
 the decision was based on.
@@ -12,6 +15,7 @@ An approval is recorded in the ledger (see ledger). Decisions are logged as stru
 codes only, never the originals or names.
 """
 
+import hashlib
 import json
 import logging
 import threading
@@ -53,6 +57,7 @@ class QueueItem(BaseModel):
     tier: Tier | None = None
     verify_with: Contact | None = None
     call: CallLog | None = None
+    caller_session: str | None = None  # digest of the caller's session; never sent to the browser
     history: list[HistoryItem]
 
 
@@ -68,6 +73,10 @@ def _received(scenario: demo.Scenario) -> HistoryItem:
     at = datetime.combine(scenario.payment.requested_on, time(9, 0), tzinfo=JST)
     channel = CHANNEL_NAMES[scenario.instruction.channel]
     return HistoryItem(at=at, event="received", detail=f"Payment request with an instruction by {channel}")
+
+
+def _digest(session: str) -> str:
+    return hashlib.sha256(session.encode()).hexdigest()
 
 
 def _transfer(payment: Payment) -> str:
@@ -117,12 +126,12 @@ class ApprovalStore:
             if item.status != "pending":
                 return  # decided: keep the check the decision was based on
             if item.call and (item.call.contact != result.verify_with or not _same_transfer(item.call, payment)):
-                item.call = None  # a call about a different number or transfer no longer counts
+                item.call = item.caller_session = None  # a call about a different number or transfer no longer counts
             item.findings, item.tier, item.verify_with = codes, result.tier, result.verify_with
             item.history.append(HistoryItem(at=datetime.now(JST), event="checked", detail=detail))
             self._save(payment_id, item)
 
-    def log_call(self, payment_id: str, by: str, confirmed: bool) -> QueueItem:
+    def log_call(self, payment_id: str, by: str, confirmed: bool, session: str) -> QueueItem:
         with self._lock:
             item = self._load(payment_id)
             if item.status != "pending":
@@ -137,6 +146,7 @@ class ApprovalStore:
             item.call = CallLog(
                 by=by, at=now, contact=contact, confirmed=confirmed, account_number=payment.account.number, amount=payment.amount
             )
+            item.caller_session = _digest(session)
             result = "confirmed" if confirmed else "did not confirm"
             item.history.append(
                 HistoryItem(
@@ -152,14 +162,16 @@ class ApprovalStore:
             self._save(payment_id, item)
             return item
 
-    def decide(self, payment_id: str, decision: Decision, approver: str | None = None) -> QueueItem:
+    def decide(
+        self, payment_id: str, decision: Decision, approver: str | None = None, session: str | None = None
+    ) -> QueueItem:
         with self._lock:
             item = self._load(payment_id)
             if item.status != "pending":
                 raise DecisionError("This payment has already been decided.")
             detail = ""
             if decision == "approved":
-                detail = self._approval(item, approver)
+                detail = self._approval(item, approver, session)
                 confirmed_on = item.call.at.date() if item.tier == "verify" and item.call else None
                 ledger.record(demo.scenario_for(payment_id).payment, confirmed_on)
                 detail = "; ".join(d for d in (detail, "recorded in the ledger") if d)
@@ -170,7 +182,7 @@ class ApprovalStore:
             return item
 
     @staticmethod
-    def _approval(item: QueueItem, approver: str | None) -> str:
+    def _approval(item: QueueItem, approver: str | None, session: str | None) -> str:
         if item.findings is None:
             raise DecisionError("Run the check before approving.")
         if item.tier == "block":
@@ -184,6 +196,10 @@ class ApprovalStore:
             raise DecisionError("Choose the second approver.")
         if approver == call.by:
             raise DecisionError("The second approval must be by someone other than the caller.")
+        if session is None:
+            raise DecisionError("Choose who you are before approving.")
+        if item.caller_session is not None and _digest(session) == item.caller_session:
+            raise DecisionError("The second approval must come from someone else, in another browser or on another device.")
         return f"Second approval by {approver}, after {call.by}'s call to {_number_from(call.contact)}"
 
     @staticmethod

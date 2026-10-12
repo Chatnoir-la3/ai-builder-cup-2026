@@ -29,7 +29,7 @@ Open the [live demo](https://web-188931464687.asia-southeast1.run.app). The appr
 | P-1003 | The CEO, by email, moves the conversation to LINE and asks for an urgent transfer | **Verify.** Call the CEO on the number in the ledger. |
 | P-1004 | A regular invoice whose portal link Google Web Risk lists as phishing | **Block.** Approve is disabled. |
 
-For a Verify payment, choose who is calling, record whether the payee confirmed, then choose a second approver who is not the caller. Approve stays disabled until all three are done. An approved payment is added to the ledger's history, and a confirmed account counts as known from then on.
+For a Verify payment, choose who you are, call, and record whether the payee confirmed the account and amount. The second approval must come from someone else in a different browser: open the payment in a private window, choose another person, and approve there. Approve stays disabled until the call is confirmed, and the agent refuses a second approval from the caller's browser session. An approved payment is added to the ledger's history, and a confirmed account counts as known from then on.
 
 - **How it works** walks each scenario through the approval flow.
 - **Evaluation** runs 28 cases through the same rules and explains each result.
@@ -85,6 +85,7 @@ The ledger rules alone stop every attack. The lookups matter for genuine new sup
 
 ### Known limits
 
+- There is no sign-in. Who you are is chosen per browser, so the second approval shows separation between browser sessions, not verified identity.
 - With one person in accounts payable, there is no second approver. The check still flags the payment (case A17).
 - The company registry lookup is designed and its rules are in place, but it is not connected: Japan's corporate number API needs an application ID. The demo leaves it out.
 - The reader evaluation is small (10 cases). A value the reader cannot match to an image original is kept if its own quote supports it; only text originals are matched word for word.

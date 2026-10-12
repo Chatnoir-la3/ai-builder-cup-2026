@@ -3,7 +3,7 @@
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import demo, evalset, ledger, readereval
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
@@ -47,14 +47,20 @@ class CheckRequest(BaseModel):
     payment_id: str
 
 
+# The browser session the web server attaches; the second approval must come from another one.
+Session = Field(min_length=16, max_length=128)
+
+
 class CallRequest(BaseModel):
     by: str
     confirmed: bool
+    session: str = Session
 
 
 class DecisionRequest(BaseModel):
     decision: Decision
     approver: str | None = None  # the second approver, for a payment that needed a call
+    session: str | None = Field(default=None, min_length=16, max_length=128)
 
 
 def _scenario(payment_id: str) -> demo.Scenario:
@@ -130,7 +136,7 @@ async def check_payment(req: CheckRequest) -> CheckResponse:
 def log_call(payment_id: str, req: CallRequest) -> PaymentDetail:
     scenario = _scenario(payment_id)
     try:
-        store.log_call(payment_id, req.by, req.confirmed)
+        store.log_call(payment_id, req.by, req.confirmed, req.session)
     except DecisionError as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
     return _detail(scenario)
@@ -140,7 +146,7 @@ def log_call(payment_id: str, req: CallRequest) -> PaymentDetail:
 def decide(payment_id: str, req: DecisionRequest) -> PaymentDetail:
     scenario = _scenario(payment_id)
     try:
-        store.decide(payment_id, req.decision, req.approver)
+        store.decide(payment_id, req.decision, req.approver, req.session)
     except DecisionError as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
     return _detail(scenario)

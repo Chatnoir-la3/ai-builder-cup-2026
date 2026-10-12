@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { listPayments } from "@/lib/payguard-server";
+import { readSession } from "@/lib/session";
 
 import "./globals.css";
 
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const { actingAs } = await readSession();
   const pending = await listPayments()
     .then((rows) => rows.filter((r) => r.status === "pending").length)
     .catch(() => null);
@@ -28,7 +30,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <TooltipProvider>
           <SidebarProvider>
-            <AppSidebar pending={pending} />
+            <AppSidebar pending={pending} actingAs={actingAs} />
             <SidebarInset>{children}</SidebarInset>
           </SidebarProvider>
         </TooltipProvider>
