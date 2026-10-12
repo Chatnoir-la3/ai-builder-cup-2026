@@ -1,7 +1,7 @@
 """Read → check → explain, as an ADK workflow.
 
-The reader and explainer are Gemini; the check between them is plain code and decides whether the
-explainer runs at all. A routine payment never reaches the explainer, so it costs one model call and
+The reader and explainer are Gemini; the check between them is plain code (the ledger rules, plus
+Web Risk and domain age fetched by code) and decides whether the explainer runs at all. A routine payment never reaches the explainer, so it costs one model call and
 shows nothing.
 """
 
@@ -14,7 +14,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from pydantic import BaseModel
 
-from . import demo
+from . import demo, lookups
 from .explain import Explanation, Notice, explain_input, explainer_agent, notice
 from .models import CheckResult, Contact, Finding, Payment, Tier
 from .reader import GroundedReading, Reading, build_content, ground, reader_agent
@@ -38,8 +38,10 @@ def _as_reading(value: object) -> Reading:
 
 def check_node(node_input: object, payment_id: str):
     scenario = demo.scenario_for(payment_id)
-    grounded = ground(_as_reading(node_input), demo.originals(scenario))
-    result = check(demo.ledger(), scenario.payment, grounded.instruction)
+    originals = demo.originals(scenario)
+    grounded = ground(_as_reading(node_input), originals)
+    found = lookups.fetch(grounded.instruction, originals, scenario.payment.requested_on)
+    result = check(demo.ledger(), scenario.payment, grounded.instruction, found)
     return Event(
         state={
             "grounded": grounded.model_dump(mode="json"),

@@ -1,0 +1,94 @@
+from datetime import date
+
+import pytest
+
+from app.payguard import lookups
+from app.payguard.models import Instruction
+from app.payguard.reader import Original
+
+TODAY = date(2026, 10, 10)
+
+
+def text(body: str) -> Original:
+    return Original(name="mail.email.txt", mime_type="text/plain", data=body.encode("utf-8"))
+
+
+class FakeResponse:
+    def __init__(self, status: int, body: dict):
+        self.status_code, self._body = status, body
+
+    def json(self) -> dict:
+        return self._body
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise RuntimeError(self.status_code)
+
+
+class FakeSession:
+    def __init__(self, threats: dict[str, list[str]]):
+        self.threats, self.asked = threats, []
+
+    def get(self, url, params, timeout):
+        self.asked.append(params["uri"])
+        hit = self.threats.get(params["uri"])
+        return FakeResponse(200, {"threat": {"threatTypes": hit}} if hit else {})
+
+
+def test_links_come_from_text_originals_only():
+    found = lookups.links(
+        [
+            text("請求書はこちら（https://portal.shigino-bussan.example/inv?id=7）。\nhttp://a.example/x, http://a.example/x"),
+            Original(name="chat.png", mime_type="image/png", data=b"https://in-an-image.example"),
+        ]
+    )
+    assert found == ["https://portal.shigino-bussan.example/inv?id=7", "http://a.example/x"]
+
+
+def test_web_risk_reports_listed_links_and_skips_reserved_names():
+    session = FakeSession({"http://bad.test-phish.net/login": ["SOCIAL_ENGINEERING"]})
+    urls = ["http://bad.test-phish.net/login", "https://ok.example.org/", "https://invoice.example/x"]
+    assert lookups.listed(urls, session=lambda: session) == ["http://bad.test-phish.net/login"]
+    assert session.asked == ["http://bad.test-phish.net/login", "https://ok.example.org/"]
+
+
+def test_no_links_means_no_web_risk_call():
+    def fail():
+        raise AssertionError("should not be called")
+
+    assert lookups.listed(["https://invoice.example/x"], session=fail) == []
+
+
+def test_rdap_registration_date():
+    def get(url, timeout, headers):
+        assert url == "https://rdap.org/domain/utou-shoji.jp"
+        return FakeResponse(200, {"events": [{"eventAction": "last changed", "eventDate": "2026-10-09T00:00:00Z"},
+                                             {"eventAction": "registration", "eventDate": "2026-10-05T03:00:00Z"}]})
+
+    assert lookups.registered_on("utou-shoji.jp", get=get) == date(2026, 10, 5)
+
+
+@pytest.mark.parametrize("domain", ["tsubakuro-kenzai.example", "x.test", "example"])
+def test_reserved_domains_are_not_looked_up(domain):
+    def get(*a, **k):
+        raise AssertionError("should not be called")
+
+    assert lookups.registered_on(domain, get=get) is None
+
+
+def test_fetch_turns_failures_into_unknown(monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("network")
+
+    monkeypatch.setattr(lookups, "listed", boom)
+    monkeypatch.setattr(lookups, "registered_on", boom)
+    ins = Instruction(channel="email", sender_address="billing@utou-shoji.jp")
+    result = lookups.fetch(ins, [text("https://a.net/")], TODAY)
+    assert result.listed_urls == [] and result.domain_age_days is None
+
+
+def test_fetch_gives_domain_age(monkeypatch):
+    monkeypatch.setattr(lookups, "listed", lambda urls: [])
+    monkeypatch.setattr(lookups, "registered_on", lambda d: date(2026, 10, 5))
+    ins = Instruction(channel="email", sender_address="billing@Utou-Shoji.jp")
+    assert lookups.fetch(ins, [], TODAY).domain_age_days == 5
