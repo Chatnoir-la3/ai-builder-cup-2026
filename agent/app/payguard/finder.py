@@ -114,6 +114,7 @@ def _ask(payee: str) -> tuple[Answer, list[str]]:
             system_instruction=FINDER_INSTRUCTION,
             tools=[types.Tool(google_search=types.GoogleSearch())],
             thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW),
+            http_options=types.HttpOptions(timeout=30_000),
         ),
     )
     meta = res.candidates[0].grounding_metadata if res.candidates else None

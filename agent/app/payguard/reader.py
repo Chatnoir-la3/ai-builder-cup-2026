@@ -139,6 +139,9 @@ def ground(reading: Reading, originals: list[Original]) -> GroundedReading:
     return GroundedReading(instruction=instruction, evidence=kept, unverified=unverified)
 
 
+# A reply normally takes under 10 s; one that hangs is cut off and tried once more, so a demo never waits a minute.
+MODEL_HTTP_OPTIONS = types.HttpOptions(timeout=25_000, retry_options=types.HttpRetryOptions(attempts=2, initial_delay=1))
+
 reader_agent = Agent(
     model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
     name="reader",
@@ -148,6 +151,8 @@ reader_agent = Agent(
     output_schema=Reading,
     output_key="reading",
     generate_content_config=types.GenerateContentConfig(
-        temperature=0, thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+        temperature=0,
+        thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW),
+        http_options=MODEL_HTTP_OPTIONS,
     ),
 )
