@@ -39,4 +39,7 @@ for role in roles/bigquery.dataEditor roles/bigquery.jobUser; do
     --member="serviceAccount:$AGENT_SA" --role="$role" --condition=None >/dev/null
 done
 
+# Lookups: Google Web Risk for links in instructions (uris.search, free up to 100k calls a month).
+gcloud services enable webrisk.googleapis.com --project="$PROJECT_ID"
+
 echo "platform bootstrap done: $MODEL_ARMOR_TEMPLATE, dataset $AUDIT_DATASET"
