@@ -1,0 +1,19 @@
+From: ツバクロ建材 営業部 田中 <tanaka@tsubakur0-kenzai.example>
+To: 鈴木 花子 <suzuki@miori-koumuten.example>
+Date: Wed, 7 Oct 2026 18:47:00 +0900
+Subject: Re: 10月分ご請求書の送付
+
+鈴木様
+
+先ほどの件、お振込先だけ下記に変更させてください。金額は 462,000円のままです。
+
+ゆうなぎ銀行 新宿支店 普通 8812345 オカノ タロウ
+
+ツバクロ建材 田中
+
+> From: ツバクロ建材 営業部 田中 <tanaka@tsubakuro-kenzai.example>
+> Date: Mon, 5 Oct 2026 10:12:00 +0900
+> Subject: 10月分ご請求書の送付
+>
+> ご請求金額：462,000円（税込）
+> お振込先：従来どおり（いさな銀行 本店 普通 1234567 ツバクロケンザイ(カ）

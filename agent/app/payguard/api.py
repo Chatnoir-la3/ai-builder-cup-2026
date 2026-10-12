@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
-from . import demo, evalset, ledger
+from . import demo, evalset, ledger, readereval
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
 from .models import CheckResult, Channel, Contact, Payment, Tier
 from .pipeline import CheckResponse, run_check
@@ -155,6 +155,11 @@ class Evaluation(BaseModel):
 def evaluation() -> Evaluation:
     rows = evalset.results()
     return Evaluation(summary=evalset.summary(rows), cases=rows)
+
+
+@router.get("/demo/eval/reading")  # before /demo/eval/{case_id}, which would match it
+def reading_evaluation() -> readereval.Evaluation:
+    return readereval.evaluation()
 
 
 @router.get("/demo/eval/{case_id}")

@@ -1,0 +1,752 @@
+{
+  "model": "gemini-3.8-flash",
+  "run_on": "2026-10-12",
+  "cases": [
+    {
+      "id": "R01",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakuro-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "1234567",
+            "account_holder": "ツバクロケンザイ(カ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakuro-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "1234567",
+            "account_holder": "ツバクロケンザイ(カ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 10.6,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakuro-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "1234567",
+            "account_holder": "ツバクロケンザイ(カ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakuro-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "1234567",
+            "account_holder": "ツバクロケンザイ(カ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 7.0,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakuro-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "1234567",
+            "account_holder": "ツバクロケンザイ(カ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakuro-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "1234567",
+            "account_holder": "ツバクロケンザイ(カ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 7.5,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R02",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 6.6,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 6.2,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 5.7,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R03",
+      "runs": [
+        {
+          "read": {
+            "channel": "line",
+            "sender_name": "佐藤一郎",
+            "sender_address": null,
+            "payee_name": null,
+            "account_number": "5503921",
+            "account_holder": "ド)ルリカケ",
+            "amount": 3000000
+          },
+          "grounded": {
+            "channel": "line",
+            "sender_name": "佐藤一郎",
+            "sender_address": null,
+            "payee_name": null,
+            "account_number": "5503921",
+            "account_holder": "ド)ルリカケ",
+            "amount": 3000000
+          },
+          "unverified": [],
+          "seconds": 22.1,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "line",
+            "sender_name": "佐藤一郎",
+            "sender_address": null,
+            "payee_name": null,
+            "account_number": "5503921",
+            "account_holder": "ド)ルリカケ",
+            "amount": 3000000
+          },
+          "grounded": {
+            "channel": "line",
+            "sender_name": "佐藤一郎",
+            "sender_address": null,
+            "payee_name": null,
+            "account_number": "5503921",
+            "account_holder": "ド)ルリカケ",
+            "amount": 3000000
+          },
+          "unverified": [],
+          "seconds": 15.8,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "line",
+            "sender_name": "佐藤一郎",
+            "sender_address": null,
+            "payee_name": null,
+            "account_number": "5503921",
+            "account_holder": "ド)ルリカケ",
+            "amount": 3000000
+          },
+          "grounded": {
+            "channel": "line",
+            "sender_name": "佐藤一郎",
+            "sender_address": null,
+            "payee_name": null,
+            "account_number": "5503921",
+            "account_holder": "ド)ルリカケ",
+            "amount": 3000000
+          },
+          "unverified": [],
+          "seconds": 6.9,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R04",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ヒサゴ設備 経理部",
+            "sender_address": "keiri@hisago-setsubi.example",
+            "payee_name": "株式会社ヒサゴ設備 経理部",
+            "account_number": "7654321",
+            "account_holder": "カ)ヒサゴセツビ",
+            "amount": 1610000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ヒサゴ設備 経理部",
+            "sender_address": "keiri@hisago-setsubi.example",
+            "payee_name": "株式会社ヒサゴ設備 経理部",
+            "account_number": "7654321",
+            "account_holder": "カ)ヒサゴセツビ",
+            "amount": 1610000
+          },
+          "unverified": [],
+          "seconds": 6.1,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ヒサゴ設備 経理部",
+            "sender_address": "keiri@hisago-setsubi.example",
+            "payee_name": "株式会社ヒサゴ設備 経理部",
+            "account_number": "7654321",
+            "account_holder": "カ)ヒサゴセツビ",
+            "amount": 1610000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ヒサゴ設備 経理部",
+            "sender_address": "keiri@hisago-setsubi.example",
+            "payee_name": "株式会社ヒサゴ設備 経理部",
+            "account_number": "7654321",
+            "account_holder": "カ)ヒサゴセツビ",
+            "amount": 1610000
+          },
+          "unverified": [],
+          "seconds": 5.7,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ヒサゴ設備 経理部",
+            "sender_address": "keiri@hisago-setsubi.example",
+            "payee_name": "株式会社ヒサゴ設備 経理部",
+            "account_number": "7654321",
+            "account_holder": "カ)ヒサゴセツビ",
+            "amount": 1610000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ヒサゴ設備 経理部",
+            "sender_address": "keiri@hisago-setsubi.example",
+            "payee_name": "株式会社ヒサゴ設備 経理部",
+            "account_number": "7654321",
+            "account_holder": "カ)ヒサゴセツビ",
+            "amount": 1610000
+          },
+          "unverified": [],
+          "seconds": 5.2,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R05",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ　タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ　タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 5.5,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ　タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ　タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 6.1,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ　タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ　タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 6.5,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R06",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": null
+          },
+          "unverified": [
+            "amount"
+          ],
+          "seconds": 6.1,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": null
+          },
+          "unverified": [
+            "amount"
+          ],
+          "seconds": 6.3,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": null
+          },
+          "unverified": [
+            "amount"
+          ],
+          "seconds": 6.1,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R07",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 8.8,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 6.4,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 486000
+          },
+          "unverified": [],
+          "seconds": 11.8,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R08",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 9.5,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 5.2,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": null,
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 5.5,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R09",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 8.3,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 6.3,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "ツバクロ建材 営業部 田中",
+            "sender_address": "tanaka@tsubakur0-kenzai.example",
+            "payee_name": "ツバクロ建材株式会社",
+            "account_number": "8812345",
+            "account_holder": "オカノ タロウ",
+            "amount": 462000
+          },
+          "unverified": [],
+          "seconds": 7.7,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "R10",
+      "runs": [
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "佐藤 一郎",
+            "sender_address": "sato.ichiro.office@freemail.example",
+            "payee_name": null,
+            "account_number": null,
+            "account_holder": null,
+            "amount": null
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "佐藤 一郎",
+            "sender_address": "sato.ichiro.office@freemail.example",
+            "payee_name": null,
+            "account_number": null,
+            "account_holder": null,
+            "amount": null
+          },
+          "unverified": [],
+          "seconds": 4.8,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "佐藤 一郎",
+            "sender_address": "sato.ichiro.office@freemail.example",
+            "payee_name": null,
+            "account_number": null,
+            "account_holder": null,
+            "amount": null
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "佐藤 一郎",
+            "sender_address": "sato.ichiro.office@freemail.example",
+            "payee_name": null,
+            "account_number": null,
+            "account_holder": null,
+            "amount": null
+          },
+          "unverified": [],
+          "seconds": 5.6,
+          "error": null
+        },
+        {
+          "read": {
+            "channel": "email",
+            "sender_name": "佐藤 一郎",
+            "sender_address": "sato.ichiro.office@freemail.example",
+            "payee_name": null,
+            "account_number": null,
+            "account_holder": null,
+            "amount": null
+          },
+          "grounded": {
+            "channel": "email",
+            "sender_name": "佐藤 一郎",
+            "sender_address": "sato.ichiro.office@freemail.example",
+            "payee_name": null,
+            "account_number": null,
+            "account_holder": null,
+            "amount": null
+          },
+          "unverified": [],
+          "seconds": 6.0,
+          "error": null
+        }
+      ]
+    }
+  ]
+}

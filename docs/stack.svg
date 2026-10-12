@@ -61,7 +61,7 @@
 
     <text x="52" y="595" class="k">Tests</text>
     <text x="212" y="595" class="t">pytest, Vitest</text>
-    <text x="552" y="595" class="s">Unit and API tests; 28-case evaluation set</text>
+    <text x="552" y="595" class="s">Unit and API tests; reading and rules evaluations</text>
   </g>
   <path d="M32 172H1008M32 216H1008M32 260H1008M32 304H1008M32 348H1008M32 392H1008M32 436H1008M32 480H1008M32 524H1008M32 568H1008" stroke="#f4f4f5"/>
 </svg>

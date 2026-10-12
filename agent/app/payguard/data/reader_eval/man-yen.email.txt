@@ -1,0 +1,13 @@
+From: ツバクロ建材 営業部 田中 <tanaka@tsubakur0-kenzai.example>
+To: 鈴木 花子 <suzuki@miori-koumuten.example>
+Date: Wed, 7 Oct 2026 18:47:00 +0900
+Subject: お振込先変更のお願い
+
+鈴木様
+
+ツバクロ建材の田中です。
+今月分（48万6千円）は、下記の口座へお願いいたします。
+
+ゆうなぎ銀行 新宿支店 普通 8812345 オカノ タロウ
+
+ツバクロ建材株式会社 営業部 田中

@@ -52,7 +52,25 @@ For a Verify payment, choose who is calling, record whether the payee confirmed,
 
 ## Evaluation
 
-28 cases, 18 attacks and 10 genuine payments, run through the same rules as the approval queue. They are in [`agent/app/payguard/evalset.py`](agent/app/payguard/evalset.py) and on the app's **Evaluation** page, where each case shows its findings and why it was stopped.
+Two parts, both on the app's **Evaluation** page: how well Gemini reads the originals, and what the rules decide.
+
+### Reading by Gemini
+
+10 cases, each read 3 times by Gemini 3.8 Flash on 2026-10-12 ([cases](agent/app/payguard/data/reader_eval/cases.json), [stored run](agent/app/payguard/data/reader_eval/results.json), [page](https://web-188931464687.asia-southeast1.run.app/evaluation?tab=reading)). They are the four demo payments and six that are meant to trip the reader: full-width digits, an amount written as 48万6千円, an email telling the AI to report a registered account, a reply quoting the old account, the new account only in an invoice image, and an email with no account at all. Scored are the five values the rules use, after the code check that keeps a value only when the original shows it.
+
+| | Result |
+|---|---|
+| Values correct | 147 / 150 |
+| Wrong values that reached the rules | **0** |
+| Values cleared by the code check | 3 |
+| Runs where the rules reach the expected findings | 30 / 30 |
+| Reading time | 6.3 s median, 22.1 s longest, no failed runs |
+
+The 3 cleared values are the amount written as 48万6千円. Gemini read it as ¥486,000 each time, but the quote has no such digits, so the code check removed it and the approver is told the amount was not confirmed. Run it again with `PYTHONPATH=. uv run python -m app.payguard.readereval` (calls Gemini).
+
+### Rules
+
+28 cases, 18 attacks and 10 genuine payments, run through the same rules as the approval queue. They are in [`agent/app/payguard/evalset.py`](agent/app/payguard/evalset.py), and on the page each case shows its findings and why it was stopped.
 
 | | Ledger alone | With lookups |
 |---|---|---|
@@ -64,11 +82,11 @@ For a Verify payment, choose who is calling, record whether the payee confirmed,
 
 The ledger rules alone stop every attack. The lookups matter for genuine new suppliers: without an official number to call, a real first payment cannot be approved. In the evaluation, the lookup results are given per case, so the outcome depends on the rules alone and can be repeated. All 28 cases give the expected findings and tier, and the tests check this.
 
-Known limits:
+### Known limits
 
 - With one person in accounts payable, there is no second approver. The check still flags the payment (case A17).
 - The company registry lookup is designed and its rules are in place, but it is not connected: Japan's corporate number API needs an application ID. The demo leaves it out.
-- The reader can misread an original. Fields it cannot match to the original are shown as "Not confirmed in the original".
+- The reader evaluation is small (10 cases). Fields the reader cannot match to the original are shown as "Not confirmed in the original".
 
 ## Architecture
 

@@ -9,3 +9,8 @@ HERE="$(pwd -W 2>/dev/null || pwd)"  # Windows Git Bash needs a drive-letter pat
 
 $PLAYWRIGHT screenshot --viewport-size=760,900 --full-page "file:///${HERE#/}/src/routine-invoice.invoice.html" routine-invoice.invoice.png
 $PLAYWRIGHT screenshot --viewport-size=390,760 --full-page "file:///${HERE#/}/src/ceo-chat.line.html" ceo-chat.line.png
+
+# The reader evaluation's invoice image (agent/app/payguard/data/reader_eval)
+cd ../reader_eval
+HERE="$(pwd -W 2>/dev/null || pwd)"
+$PLAYWRIGHT screenshot --viewport-size=760,900 --full-page "file:///${HERE#/}/src/changed-account.invoice.html" changed-account.invoice.png

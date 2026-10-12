@@ -206,3 +206,9 @@ def test_evaluation_case_detail_and_404():
     assert d["ledger_tier"] == "block" and d["tier"] == "verify"
     assert d["verify_with"]["source"] == "official"
     assert client.get("/demo/eval/X99").status_code == 404
+
+
+def test_reading_evaluation():
+    d = client.get("/demo/eval/reading").json()
+    assert d["summary"]["cases"] == 10 and len(d["cases"]) == 10
+    assert {f["field"] for f in d["cases"][0]["fields"]} == {"channel", "sender_name", "sender_address", "account_number", "amount"}
