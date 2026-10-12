@@ -103,9 +103,23 @@ START ─► reader (Gemini) ─► check (code) ─┬─ "explain" ─► expl
 
 ![Technology](docs/stack.svg)
 
-Data handling:
+What leaves the app, and to whom:
+
+| Sent to | What | When |
+|---|---|---|
+| Gemini on Vertex AI (`global` by default) | The originals in full: email text and images | Every check (reader) |
+| Gemini on Vertex AI | The findings' facts (payee, account, holder, domain, amount, link) and the contact to call; never the originals | When something differs (explainer) |
+| Gemini with Google Search grounding | The payee's name only | A new payee with nobody in the ledger to call (finder) |
+| The pages Google Search grounded the answer in | A plain HTTPS request for the page | Same as the finder |
+| Google Web Risk | Links found in text originals, in full | Every check with a link, except reserved names such as `.example` |
+| rdap.org | The sender's email domain | Every email check, except reserved names |
+
+Vertex AI does not use customer data to train models without permission. Google keeps Google Search grounding queries for up to three days ([Vertex AI data governance](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/data-governance)). To keep data in the region, see Model availability below.
+
+What is kept:
 
 - Originals are read for the check and are not stored by it.
+- The approval queue in Firestore keeps the findings, the tier, the number to call, who called and approved, and the account and amount the payee confirmed. The ledger keeps the vendor master and payment history.
 - Audit rows in BigQuery keep metadata only, with all content redacted.
 - Decision logs record the tier, the finding codes and the call outcome, not names or account numbers.
 - Model Armor and the audit plugin turn on only when `MODEL_ARMOR_TEMPLATE` and `AUDIT_DATASET` are set, so local development needs neither.
