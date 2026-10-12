@@ -2,7 +2,8 @@
 
 The model sees the findings and the ledger contact, never the originals, so text written by a fraudster
 cannot steer it. Its notice is accepted only if it covers exactly the findings it was given, quotes no
-number that is not in them, gives the ledger phone number, and does not call the payment a fraud.
+number that is not in them, gives the ledger phone number, does not call the payment a fraud, and does
+not call a number found by Google Search official.
 Otherwise a fixed template is used.
 """
 
@@ -119,7 +120,7 @@ def _template_reason(f: Finding) -> str:
 def _template_action(verify_with: Contact | None) -> str:
     if verify_with is None:
         return "Before approving, confirm this payee through a contact you already know, not one given in the message."
-    where = "the payee's official number" if verify_with.source == "official" else "from your own records"
+    where = "found by Google Search on a public page" if verify_with.source == "official" else "from your own records"
     return f"Before approving, call {verify_with.name} at {verify_with.phone} ({where}, not from the message) to confirm."
 
 
@@ -139,6 +140,7 @@ def template_notice(findings: list[Finding], verify_with: Contact | None) -> Not
 
 _NUMBER = re.compile(r"\d[\d,\-]*\d|\d")
 _BLAME = re.compile(r"\b(fraud|fraudulent|scam|scammer|criminal)\b", re.IGNORECASE)
+_VOUCHES = re.compile(r"\b(official|verified|genuine)\b", re.IGNORECASE)
 
 
 def _numbers(text: str) -> set[str]:
@@ -157,6 +159,8 @@ def acceptable(explanation: Explanation, findings: list[Finding], verify_with: C
         for v in f.facts.values():
             allowed |= _numbers(str(v))
     if verify_with is not None:
+        if verify_with.source == "official" and any(_VOUCHES.search(t) for t in texts):
+            return False  # code found the number on a page; it cannot vouch that the page is the payee's
         allowed |= _numbers(verify_with.phone)
         if re.sub(r"\D", "", verify_with.phone) not in re.sub(r"\D", "", explanation.action):
             return False
@@ -189,7 +193,8 @@ pattern) and `verify_with` (who to call back and where the number is from, or nu
 Write:
 - action: one sentence telling the approver what to do before approving. If verify_with is given, tell
   them to call that person at that phone number and say where the number is from: their own records
-  (source "ledger") or the payee's official number (source "official"), not the message. If it is null,
+  (source "ledger") or found by Google Search on a public page (source "official"), not the message. Do
+  not call a number from Google Search official or verified. If it is null,
   tell them to confirm through a contact they already know.
 - reasons: exactly one item per finding, with its code, stating that fact in one plain sentence.
 

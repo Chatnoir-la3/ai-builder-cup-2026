@@ -142,7 +142,7 @@ export default async function EvaluationPage(props: PageProps<"/evaluation">) {
                 <CardTitle className="text-base">Results</CardTitle>
                 <CardDescription>
                   {s.as_expected} of {cases.length} cases give the expected findings and outcome. Lookups are Web Risk,
-                  the company registry, domain age and the payee&apos;s official number; here they are given per case,
+                  the company registry, domain age and a number for the payee found by Google Search; here they are given per case,
                   so the result is the rules&apos; alone and repeatable.
                 </CardDescription>
               </CardHeader>

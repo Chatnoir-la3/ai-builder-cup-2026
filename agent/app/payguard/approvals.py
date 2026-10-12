@@ -2,7 +2,7 @@
 
 The tier from the rules decides what approval needs; code enforces it, the model never approves anything.
 - pass: one person approves.
-- verify: someone calls the number from the check (the ledger's, or the payee's official one) and logs
+- verify: someone calls the number from the check (the ledger's, or one found by Google Search) and logs
   the result; a second person, not the caller, then approves. An unconfirmed call puts it on hold.
 - block: it cannot be approved.
 An approval is recorded in the ledger (see ledger). Decisions are logged as structured lines with
@@ -65,7 +65,7 @@ def _received(scenario: demo.Scenario) -> HistoryItem:
 
 
 def _number_from(contact: Contact) -> str:
-    return "the payee's official number" if contact.source == "official" else "the ledger number"
+    return "the number found by Google Search" if contact.source == "official" else "the ledger number"
 
 
 class ApprovalStore:

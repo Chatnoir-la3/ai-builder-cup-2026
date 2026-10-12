@@ -259,8 +259,7 @@ function NoticeCard({
         {contact && (
           <div className="rounded-md border bg-background p-3">
             <div className="text-xs text-muted-foreground">
-              {contact.source === "official" ? "The payee's official number" : "From your vendor ledger"}, not from the
-              message
+              {contact.source === "official" ? "Found by Google Search" : "From your vendor ledger"}, not from the message
             </div>
             <div className="mt-1 flex items-center gap-2 font-medium">
               <Phone className="size-4" />
@@ -269,6 +268,15 @@ function NoticeCard({
               </a>
             </div>
             <div className="text-sm">{contact.name}</div>
+            {contact.source === "official" && contact.page && (
+              <div className="mt-1 text-xs break-all text-muted-foreground">
+                On{" "}
+                <a href={contact.page} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                  {contact.page}
+                </a>
+                . Check that this page belongs to the payee before you call.
+              </div>
+            )}
           </div>
         )}
 

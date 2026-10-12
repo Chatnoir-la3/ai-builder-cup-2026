@@ -39,7 +39,7 @@ function lookupRows(l: Lookups): [string, string][] {
   if (l.company_found !== null) rows.push(["In company registry", l.company_found ? "Yes" : "No"]);
   if (l.company_age_days !== null) rows.push(["Company age", `${l.company_age_days} days`]);
   if (l.official_contact)
-    rows.push(["Official number found", `${l.official_contact.phone} (${l.official_contact.name})`]);
+    rows.push(["Number found by Google Search", `${l.official_contact.phone} (${l.official_contact.name})`]);
   return rows;
 }
 
@@ -151,7 +151,7 @@ export default async function EvalCasePage(props: PageProps<"/evaluation/[id]">)
                 {c.verify_with && (
                   <div className="rounded-md border p-3">
                     <div className="text-xs text-muted-foreground">
-                      Call {c.verify_with.source === "official" ? "the payee's official number" : "the ledger contact"}
+                      Call {c.verify_with.source === "official" ? "the number found by Google Search" : "the ledger contact"}
                     </div>
                     <div className="font-medium tabular-nums">{c.verify_with.phone}</div>
                     <div>{c.verify_with.name}</div>
