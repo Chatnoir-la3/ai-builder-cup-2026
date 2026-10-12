@@ -50,6 +50,8 @@ export const FINDING_LABEL: Record<FindingCode, string> = {
   NEW_COMPANY: "New company",
   HOLDER_NOT_COMPANY: "Holder is not a company",
   NEW_DOMAIN: "New email domain",
+  NOT_IN_ORIGINAL: "Not confirmed in the original",
+  LOOKUP_FAILED: "Link check unavailable",
 };
 
 export const FIELD_LABEL: Record<InstructionField, string> = {

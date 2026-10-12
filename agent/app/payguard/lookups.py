@@ -3,8 +3,10 @@
 - Links in the instruction, against Google Web Risk (`uris.search`).
 - The age of the sender's email domain, from its RDAP registration event.
 
-No model is involved. A lookup that fails or has nothing to say stays unknown, and the rules then say
-nothing about it: the ledger checks still apply. Reserved names such as `.example` are never looked up.
+No model is involved. A lookup with nothing to say stays unknown, and the rules then say nothing about
+it. A lookup that fails is recorded in `failed`: Web Risk can block a payment, so its failure is a finding;
+a missing domain age only leaves the ledger checks to decide. Reserved names such as `.example` are never
+looked up.
 """
 
 import logging
@@ -84,21 +86,24 @@ def registered_on(domain: str, get: Callable[..., requests.Response] = requests.
     return None
 
 
-def _quietly(name: str, fn: Callable[[], object], default: object) -> object:
+def _quietly(name: str, fn: Callable[[], object], default: object, failed: list[str]) -> object:
     try:
         return fn()
-    except Exception as e:  # a lookup that fails stays unknown
+    except Exception as e:  # recorded, not raised: the check still runs on the ledger
         logger.warning('{"message": "lookup failed", "lookup": "%s", "error": "%s"}', name, type(e).__name__)
+        failed.append(name)
         return default
 
 
 def fetch(ins: Instruction, originals: list[Original], today: date) -> Lookups:
     domain = _email_domain(ins.sender_address)
+    failed: list[str] = []
     with ThreadPoolExecutor(max_workers=2) as pool:
-        urls = pool.submit(_quietly, "web_risk", lambda: listed(links(originals)), [])
-        reg = pool.submit(_quietly, "rdap", lambda: registered_on(domain) if domain else None, None)
+        urls = pool.submit(_quietly, "web_risk", lambda: listed(links(originals)), [], failed)
+        reg = pool.submit(_quietly, "rdap", lambda: registered_on(domain) if domain else None, None, failed)
         listed_urls, registered = urls.result(), reg.result()
     return Lookups(
         listed_urls=listed_urls,
         domain_age_days=(today - registered).days if isinstance(registered, date) else None,
+        failed=sorted(failed),
     )

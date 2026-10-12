@@ -5,10 +5,15 @@ Checks rely on facts that are hard for a fraudster to change (account history, r
 how a person usually instructs payments), not on wording such as "urgent" or "confidential".
 Facts from outside the ledger (Web Risk, the company registry, domain age) arrive as `Lookups`,
 fetched before the check, so the check itself stays deterministic.
+
+A check that could not be made does not count as passed. A value the reader returned but the original
+does not show is removed before the rules see it (`reader.ground`), and a Web Risk lookup can fail: each
+is a finding of its own, so the approver is asked to call rather than shown nothing.
 """
 
 import re
 import unicodedata
+from collections.abc import Sequence
 
 from .models import CHANNEL_NAMES, BankAccount, CheckResult, Contact, Finding, Instruction, Ledger, Lookups, Payment, Person, Vendor
 
@@ -18,6 +23,13 @@ MIN_HISTORY = 3
 LOOKALIKE_DISTANCE = 2
 NEW_DOMAIN_DAYS = 90
 NEW_COMPANY_DAYS = 365
+# Instruction fields the rules compare; when the original does not show one the reader returned, the rule using it cannot run.
+RULE_FIELDS: dict[str, str] = {
+    "sender_name": "sender",
+    "sender_address": "sender address",
+    "account_number": "account number",
+    "amount": "amount",
+}
 
 _LEGAL_FORMS = re.compile(r"[(（]?(?:カ|ユ|ド|ゴ|メ|シヤ|ザイ)[)）]|[(（](?:カ|ユ|ド|ゴ|メ)$")
 _SMALL_KANA = str.maketrans("ァィゥェォッャュョヮ", "アイウエオツヤユヨワ")
@@ -196,8 +208,17 @@ def _instruction_findings(payment: Payment, ins: Instruction) -> list[Finding]:
     return [Finding(code="INSTRUCTION_MISMATCH", facts=diffs, fields=fields)] if diffs else []
 
 
+def _unconfirmed_findings(unverified: Sequence[str]) -> list[Finding]:
+    fields = [f for f in RULE_FIELDS if f in unverified]
+    if not fields:
+        return []
+    return [Finding(code="NOT_IN_ORIGINAL", facts={"fields": ", ".join(RULE_FIELDS[f] for f in fields)}, fields=fields)]
+
+
 def _lookup_findings(payment: Payment, ins: Instruction, vendor: Vendor | None, lookups: Lookups) -> list[Finding]:
     findings = [Finding(code="URL_LISTED", facts={"url": url}) for url in lookups.listed_urls]
+    if "web_risk" in lookups.failed:
+        findings.append(Finding(code="LOOKUP_FAILED", facts={"lookup": "Google Web Risk"}))
     domain = _email_domain(ins.sender_address)
     if ins.channel == "email" and domain and lookups.domain_age_days is not None and lookups.domain_age_days < NEW_DOMAIN_DAYS:
         findings.append(
@@ -217,7 +238,10 @@ def _lookup_findings(payment: Payment, ins: Instruction, vendor: Vendor | None, 
     return findings
 
 
-def check(ledger: Ledger, payment: Payment, ins: Instruction, lookups: Lookups | None = None) -> CheckResult:
+def check(
+    ledger: Ledger, payment: Payment, ins: Instruction, lookups: Lookups | None = None, unverified: Sequence[str] = ()
+) -> CheckResult:
+    """`unverified`: instruction fields the reader returned but the original does not show (`reader.ground`)."""
     lookups = lookups or Lookups()
     vendor = next((v for v in ledger.vendors if v.id == payment.vendor_id), None)
     person = _sender_person(ledger, ins)
@@ -241,5 +265,6 @@ def check(ledger: Ledger, payment: Payment, ins: Instruction, lookups: Lookups |
             verify_with = lookups.official_contact.model_copy(update={"source": "official"})
 
     findings += _instruction_findings(payment, ins)
+    findings += _unconfirmed_findings(unverified)
     findings += _lookup_findings(payment, ins, vendor, lookups)
     return CheckResult(findings=findings, verify_with=verify_with)

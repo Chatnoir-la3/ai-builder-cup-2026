@@ -40,6 +40,8 @@ PRIORITY: tuple[str, ...] = (
     "SENDER_DOMAIN_UNREGISTERED",
     "AMOUNT_ABOVE_HISTORY",
     "INSTRUCTION_MISMATCH",
+    "NOT_IN_ORIGINAL",
+    "LOOKUP_FAILED",
 )
 
 class Reason(BaseModel):
@@ -107,6 +109,10 @@ def _template_reason(f: Finding) -> str:
             return f"{x['payee']} is a company, but the account holder ({x['actual']}) is not."
         case "NEW_DOMAIN":
             return f"The email domain {x['domain']} was registered {x['days']} days ago."
+        case "NOT_IN_ORIGINAL":
+            return f"Not confirmed in the original, so not checked against your records: {x['fields']}."
+        case "LOOKUP_FAILED":
+            return f"{x['lookup']} could not be reached, so the links in the instruction were not checked."
     return "This payment differs from your usual pattern."
 
 
