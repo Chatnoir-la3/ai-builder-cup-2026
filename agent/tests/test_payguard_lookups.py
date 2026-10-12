@@ -93,3 +93,24 @@ def test_fetch_gives_domain_age(monkeypatch):
     monkeypatch.setattr(lookups, "registered_on", lambda d: date(2026, 10, 5))
     ins = Instruction(channel="email", sender_address="billing@Utou-Shoji.jp")
     assert lookups.fetch(ins, [], TODAY).domain_age_days == 5
+
+
+def test_every_link_is_found_not_just_the_first_few():
+    body = " ".join(f"https://site{i}.example.org/p" for i in range(12))
+    assert len(lookups.links([text(body)])) == 12
+
+
+def test_too_many_links_fail_the_lookup_rather_than_check_some(monkeypatch):
+    def fail():
+        raise AssertionError("should not be called")
+
+    urls = [f"https://site{i}.example.org/p" for i in range(lookups.MAX_LINKS + 1)]
+    with pytest.raises(lookups.TooManyLinks):
+        lookups.listed(urls, session=fail)
+    # Reserved names do not count towards the limit.
+    assert lookups.listed([*urls[:2], *(f"https://x{i}.example/" for i in range(20))], session=lambda: FakeSession({})) == []
+
+    monkeypatch.setattr(lookups, "registered_on", lambda d: None)
+    monkeypatch.setattr(lookups, "_session", fail)
+    result = lookups.fetch(Instruction(channel="email"), [text(" ".join(urls))], TODAY)
+    assert result.failed == ["web_risk"]

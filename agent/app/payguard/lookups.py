@@ -1,6 +1,7 @@
 """Facts from outside the ledger, fetched by code before the check.
 
-- Links in the instruction, against Google Web Risk (`uris.search`).
+- Links in the instruction, against Google Web Risk (`uris.search`). Every link is checked; an
+  instruction with more than MAX_LINKS links counts as a failed lookup rather than checking only some.
 - The age of the sender's email domain, from its RDAP registration event.
 
 No model is involved. A lookup with nothing to say stays unknown, and the rules then say nothing about
@@ -24,7 +25,7 @@ from .reader import Original
 from .rules import _email_domain
 
 TIMEOUT = 5
-MAX_LINKS = 5
+MAX_LINKS = 10
 WEB_RISK = "https://webrisk.googleapis.com/v1/uris:search"
 THREATS = ("MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE")
 RDAP = "https://rdap.org/domain/{}"
@@ -43,7 +44,7 @@ def links(originals: list[Original]) -> list[str]:
                 url = url.rstrip(".,;:")
                 if url not in found:
                     found.append(url)
-    return found[:MAX_LINKS]
+    return found
 
 
 def _host(url: str) -> str:
@@ -59,10 +60,16 @@ def _session() -> AuthorizedSession:
     return AuthorizedSession(credentials)
 
 
+class TooManyLinks(Exception):
+    pass
+
+
 def listed(urls: list[str], session: Callable[[], AuthorizedSession] = _session) -> list[str]:
     urls = [u for u in urls if not reserved(_host(u))]
     if not urls:
         return []
+    if len(urls) > MAX_LINKS:
+        raise TooManyLinks(len(urls))  # a listed link could hide behind harmless ones
     s = session()
     out = []
     for url in urls:

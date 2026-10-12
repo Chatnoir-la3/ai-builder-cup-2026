@@ -40,7 +40,7 @@ For a Verify payment, choose who you are, call, and record whether the payee con
 ![Approval flow](docs/flow.svg)
 
 - **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code checks that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, look-alike or unregistered sender domains, unusual channels. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
-- **A check that cannot run does not pass.** If the original does not show a value the rules use (sender, sender address, account number, amount), or Google Web Risk cannot be reached, that is a finding of its own and the approver is asked to call. The account, holder and amount being sent are always checked, since they come from the transfer itself, not from the reading.
+- **A check that cannot run does not pass.** If the original does not show a value the rules use (sender, sender address, account number, amount), or Google Web Risk cannot check every link (it is down, or there are more than 10), that is a finding of its own and the approver is asked to call. The account, holder and amount being sent are always checked, since they come from the transfer itself, not from the reading.
 - **Lookups add what the ledger cannot know.** Google Web Risk checks the links in the instruction, and RDAP gives the sender domain's age. For a new payee with nobody in the ledger to call, the finder asks Gemini with Google Search for the payee's main number. Gemini is given the payee's name only, never the instruction. Code uses the number only if a grounded page shows it with the payee's name, the page is not on the sender's domain, and the number is not in the instruction. Code cannot tell whether that page is really the payee's, so the screen says the number was found by Google Search and shows the page.
 - **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them, and gives the number to call from the ledger or the finder. Otherwise a fixed template is used.
 - **The company's rules decide, and code enforces them.**
@@ -111,7 +111,7 @@ What leaves the app, and to whom:
 | Gemini on Vertex AI | The findings' facts (payee, account, holder, domain, amount, link) and the contact to call; never the originals | When something differs (explainer) |
 | Gemini with Google Search grounding | The payee's name only | A new payee with nobody in the ledger to call (finder) |
 | The pages Google Search grounded the answer in | A plain HTTPS request for the page | Same as the finder |
-| Google Web Risk | Links found in text originals, in full | Every check with a link, except reserved names such as `.example` |
+| Google Web Risk | Links found in text originals, in full (up to 10; more fails the check) | Every check with a link, except reserved names such as `.example` |
 | rdap.org | The sender's email domain | Every email check, except reserved names |
 
 Vertex AI does not use customer data to train models without permission. Google keeps Google Search grounding queries for up to three days ([Vertex AI data governance](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/data-governance)). To keep data in the region, see Model availability below.
