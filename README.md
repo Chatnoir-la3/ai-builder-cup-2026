@@ -41,7 +41,7 @@ For a Verify payment, choose who is calling, record whether the payee confirmed,
 
 - **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code checks that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, look-alike or unregistered sender domains, unusual channels. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
 - **A check that cannot run does not pass.** If the original does not show a value the rules use (sender, sender address, account number, amount), or Google Web Risk cannot be reached, that is a finding of its own and the approver is asked to call. The account, holder and amount being sent are always checked, since they come from the transfer itself, not from the reading.
-- **Lookups add what the ledger cannot know.** Google Web Risk checks the links in the instruction, and RDAP gives the sender domain's age. For a new payee with nobody in the ledger to call, the finder asks Gemini with Google Search for the payee's official number. Gemini is given the payee's name only, never the instruction. Code uses the number only if a grounded page shows it with the payee's name, the page is not on the sender's domain, and the number is not in the instruction.
+- **Lookups add what the ledger cannot know.** Google Web Risk checks the links in the instruction, and RDAP gives the sender domain's age. For a new payee with nobody in the ledger to call, the finder asks Gemini with Google Search for the payee's main number. Gemini is given the payee's name only, never the instruction. Code uses the number only if a grounded page shows it with the payee's name, the page is not on the sender's domain, and the number is not in the instruction. Code cannot tell whether that page is really the payee's, so the screen says the number was found by Google Search and shows the page.
 - **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them, and gives the number to call from the ledger or the finder. Otherwise a fixed template is used.
 - **The company's rules decide, and code enforces them.**
 
@@ -81,7 +81,7 @@ The 3 cleared values are the amount written as 48万6千円. Gemini read it as �
 | Genuine payments that need a call | 4 / 10 | 6 / 10 |
 | Genuine payments approved as usual | 4 / 10 | 4 / 10 |
 
-The ledger rules alone stop every attack. The lookups matter for genuine new suppliers: without an official number to call, a real first payment cannot be approved. In the evaluation, the lookup results are given per case, so the outcome depends on the rules alone and can be repeated. All 28 cases give the expected findings and tier, and the tests check this.
+The ledger rules alone stop every attack. The lookups matter for genuine new suppliers: without an independent number to call, a real first payment cannot be approved. In the evaluation, the lookup results are given per case, so the outcome depends on the rules alone and can be repeated. All 28 cases give the expected findings and tier, and the tests check this.
 
 ### Known limits
 

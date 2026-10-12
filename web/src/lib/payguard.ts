@@ -83,7 +83,8 @@ export type Evidence = {
 
 export type Finding = { code: FindingCode; facts: Record<string, string | number>; fields: InstructionField[] };
 
-export type Contact = { name: string; phone: string; source: "ledger" | "official" };
+// source "official": found by Google Search on `page`, not proof the page is the payee's.
+export type Contact = { name: string; phone: string; source: "ledger" | "official"; page?: string | null };
 
 export type CallLog = { by: string; at: string; contact: Contact; confirmed: boolean };
 

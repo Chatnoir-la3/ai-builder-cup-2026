@@ -187,10 +187,11 @@ def test_no_findings_no_notice():
     assert notice(None, [], None) is None
 
 
-def test_official_number_is_named_as_official():
-    official = Contact(name="ヨシキリ工業 代表", phone="03-0000-3001", source="official")
-    n = template_notice([Finding(code="NEW_PAYEE", facts={"payee": "株式会社ヨシキリ工業"})], official)
-    assert "official number" in n.action and "03-0000-3001" in n.action
+def test_found_number_is_not_called_official():
+    found = Contact(name="ヨシキリ工業 代表", phone="03-0000-3001", source="official", page="https://www.yoshikiri-kogyo.example.jp/")
+    n = template_notice([Finding(code="NEW_PAYEE", facts={"payee": "株式会社ヨシキリ工業"})], found)
+    assert "Google Search" in n.action and "03-0000-3001" in n.action
+    assert "official" not in n.action
 
 
 @pytest.mark.parametrize(
@@ -241,3 +242,12 @@ def test_model_calls_have_a_timeout_and_one_retry():
     for agent in (reader_agent, explainer_agent):
         http = agent.generate_content_config.http_options
         assert http.timeout == 25_000 and http.retry_options.attempts == 2
+
+
+def test_explanation_calling_a_found_number_official_is_rejected():
+    found = Contact(name="ヨシキリ工業 代表", phone="03-0000-3001", source="official")
+    findings = [Finding(code="NEW_PAYEE", facts={"payee": "株式会社ヨシキリ工業"})]
+    reasons = [Reason(code="NEW_PAYEE", text="株式会社ヨシキリ工業 is not in your vendor list.")]
+    says = "Before approving, call ヨシキリ工業 代表 at 03-0000-3001, {} not from the message."
+    assert acceptable(Explanation(action=says.format("found by Google Search,"), reasons=reasons), findings, found)
+    assert not acceptable(Explanation(action=says.format("the official number,"), reasons=reasons), findings, found)

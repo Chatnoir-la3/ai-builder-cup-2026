@@ -29,8 +29,10 @@ class Contact(BaseModel):
     name: str
     phone: str
     source: Literal["ledger", "official"] = Field(
-        default="ledger", description="The company's own ledger, or the payee's official number found by the finder"
+        default="ledger",
+        description="The company's own ledger, or a number the finder found on a public page (not proof it is the payee's)",
     )
+    page: str | None = Field(default=None, description="For a number the finder found: the page that shows it")
 
 
 class Vendor(BaseModel):

@@ -21,6 +21,7 @@ def test_parse_reads_json_inside_text():
 def test_number_on_a_grounded_page_naming_the_payee_is_official():
     contact = confirm(Answer(phone="03-0000-3001"), PAYEE, [OFFICIAL], set(), "yoshikiri-mail.example")
     assert contact is not None and contact.source == "official" and contact.phone == "03-0000-3001"
+    assert contact.page == OFFICIAL.url  # shown to the approver, who judges whether it is the payee's page
 
 
 @pytest.mark.parametrize(

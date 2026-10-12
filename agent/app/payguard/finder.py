@@ -5,6 +5,9 @@ originals, so the instruction cannot steer it. Its answer is used only if code c
 that Google Search grounded the answer in: the page shows the number and the payee's name, it is not on
 the sender's domain, and the number does not appear in the instruction (a fraudster's own number).
 Otherwise there is no independent number to call, and the rules block approval.
+
+Code cannot tell whether that page is really the payee's, so the number is never called official on
+screen: it is shown as found by Google Search, with the page, for the approver to look at.
 """
 
 import json
@@ -78,7 +81,7 @@ def confirm(
             continue
         text = unicodedata.normalize("NFKC", page.text)
         if number in digits(text) and core and core in _LEGAL.sub("", text):
-            return Contact(name=payee, phone=answer.phone.strip(), source="official")
+            return Contact(name=payee, phone=answer.phone.strip(), source="official", page=page.url)
     return None
 
 
