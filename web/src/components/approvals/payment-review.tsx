@@ -408,9 +408,12 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
   const flaggedFields = new Set<InstructionField>(result?.findings.flatMap((f) => f.fields) ?? []);
   const rowFlagged = (row: keyof typeof ROW_CODES) => ROW_CODES[row].some((c) => codes.has(c));
   const call = initial.call;
+  // After a call is logged, a later check cannot lower the tier (the agent keeps the earlier one).
+  const rank = { pass: 0, verify: 1, block: 2 } as const;
+  const tier =
+    result && call && initial.tier && rank[initial.tier] > rank[result.tier] ? initial.tier : result?.tier;
   const ready =
-    result?.tier === "pass" ||
-    (result?.tier === "verify" && call?.confirmed === true && actingAs !== "" && actingAs !== call.by);
+    tier === "pass" || (tier === "verify" && call?.confirmed === true && actingAs !== "" && actingAs !== call.by);
   const canApprove = status === "pending" && ready && !deciding;
 
   return (

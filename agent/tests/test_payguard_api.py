@@ -262,3 +262,15 @@ def test_session_is_required_and_never_shown(fake_check):
     d = call("P-1002", AP, True).json()
     assert CALLER_SESSION not in str(d) and "caller_session" not in str(d)
     assert client.post("/demo/payments/P-1002/decision", json={"decision": "approved", "approver": CEO}).status_code == 409
+
+
+def test_a_check_after_a_call_cannot_lower_the_tier(fake_check):
+    from app.payguard.models import CheckResult
+
+    client.post("/check", json={"payment_id": "P-1002"})
+    call("P-1002", AP, True)
+    store.checked("P-1002", CheckResult(findings=[], verify_with=None))  # a later reading that finds nothing
+    item = store.get("P-1002")
+    assert item.tier == "verify" and item.call is not None and item.findings
+    assert item.history[-1].detail.endswith("the earlier check stands, since a call is logged")
+    assert approve("P-1002", CEO).json()["status"] == "approved"  # still needs the second approval it had

@@ -9,8 +9,9 @@ Who calls and who approves come with the browser session they act from, and the 
 come from a different session than the call: one person needs another browser or device to play both.
 There is no sign-in yet, so a session shows separation, not identity.
 A call records the account and amount the payee was asked to confirm; if the transfer or the number to
-call changes, the call no longer counts. Once a payment is decided, a later check does not change what
-the decision was based on.
+call changes, the call no longer counts. Once a call is logged, a later check cannot lower the tier: the
+reading can vary between runs, and checking again until it passes must not skip the call. Once a payment
+is decided, a later check does not change what the decision was based on.
 An approval is recorded in the ledger (see ledger). Decisions are logged as structured lines with
 codes only, never the originals or names.
 """
@@ -30,6 +31,7 @@ from .storage import QUEUE, backend
 
 JST = timezone(timedelta(hours=9))
 Status = Literal["pending", "approved", "held"]
+TIER_RANK: dict[str, int] = {"pass": 0, "verify": 1, "block": 2}
 Decision = Literal["approved", "held"]
 
 logger = logging.getLogger("payguard.approvals")
@@ -125,6 +127,11 @@ class ApprovalStore:
             item = self._load(payment_id)
             if item.status != "pending":
                 return  # decided: keep the check the decision was based on
+            if item.call and item.tier and TIER_RANK[result.tier] < TIER_RANK[item.tier]:
+                detail = f"Checked again: {len(codes)} point(s) differ; the earlier check stands, since a call is logged"
+                item.history.append(HistoryItem(at=datetime.now(JST), event="checked", detail=detail))
+                self._save(payment_id, item)
+                return
             if item.call and (item.call.contact != result.verify_with or not _same_transfer(item.call, payment)):
                 item.call = item.caller_session = None  # a call about a different number or transfer no longer counts
             item.findings, item.tier, item.verify_with = codes, result.tier, result.verify_with
