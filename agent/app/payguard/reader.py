@@ -74,6 +74,8 @@ Fill `instruction`:
   still arrived by email), "line" for a LINE chat screenshot, "sms", "phone" or "other".
 - sender_name, sender_address: who sent the instruction, as shown (display name; email address or chat
   account name).
+- When an email only moves the conversation to a chat and the account and amount are given in the chat,
+  read the instruction from the chat: its channel and sender are the chat's.
 - payee_name, account_number (digits only), account_holder (as written), amount (yen, integer).
 Use null for anything not shown. Copy values as written; do not guess, complete or correct them.
 

@@ -2,7 +2,9 @@
 
 Built for the Google Cloud AI Builder Cup 2026 (BFSI theme).
 
-**Payment instruction check.** Just before a company approves a bank transfer, it compares the instruction (an email, a chat screenshot, an invoice) with the company's own records and, only when something differs from the usual pattern, tells the approver what to check and whom to call. It targets impersonation: a supplier "whose account changed after a ransomware attack", or a CEO asking for an urgent transfer in a chat app.
+**Payment instruction check.** Just before a company approves a bank transfer, it compares the instruction (an email, a chat screenshot, an invoice) with the company's own records and, only when something differs from the usual pattern, tells the approver what to check and whom to call. It targets impersonation: a supplier whose account is "frozen during a tax audit", or a CEO who moves the conversation to LINE and asks for an urgent transfer.
+
+> All companies, people and banks in the demo data are fictional. Email domains use the reserved `.example` domain.
 
 - **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code grounds that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, lookalike or unregistered sender domains, unusual channels. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
 - **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them and gives the callback number from the ledger; otherwise a fixed template is used.

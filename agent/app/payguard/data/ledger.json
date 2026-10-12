@@ -1,5 +1,5 @@
 {
-  "company_domains": ["kaede-koumuten.example"],
+  "company_domains": ["miori-koumuten.example"],
   "people": [
     {
       "family_name": "佐藤",
@@ -19,36 +19,36 @@
   "vendors": [
     {
       "id": "V001",
-      "name": "山田建材株式会社",
-      "holder_kana": "ヤマダケンザイ(カ",
+      "name": "ツバクロ建材株式会社",
+      "holder_kana": "ツバクロケンザイ(カ",
       "accounts": [
-        {"bank_name": "かえで銀行", "branch_name": "本店", "account_type": "ordinary", "number": "1234567", "holder_kana": "ヤマダケンザイ(カ", "registered_on": "2024-04-01"}
+        {"bank_name": "いさな銀行", "branch_name": "本店", "account_type": "ordinary", "number": "1234567", "holder_kana": "ツバクロケンザイ(カ", "registered_on": "2024-04-01"}
       ],
-      "email_domains": ["yamada-kenzai.example"],
+      "email_domains": ["tsubakuro-kenzai.example"],
       "usual_channels": ["email"],
-      "contact": {"name": "山田建材 営業部 田中", "phone": "03-0000-2001"}
+      "contact": {"name": "ツバクロ建材 営業部 田中", "phone": "03-0000-2001"}
     },
     {
       "id": "V002",
-      "name": "東和設備工業株式会社",
-      "holder_kana": "トウワセツビコウギヨウ(カ",
+      "name": "株式会社ヒサゴ設備",
+      "holder_kana": "カ)ヒサゴセツビ",
       "accounts": [
-        {"bank_name": "さくら信用金庫", "branch_name": "駅前支店", "account_type": "current", "number": "7654321", "holder_kana": "トウワセツビコウギヨウ(カ", "registered_on": "2023-11-15"}
+        {"bank_name": "ほしみ信用金庫", "branch_name": "駅前支店", "account_type": "current", "number": "7654321", "holder_kana": "カ)ヒサゴセツビ", "registered_on": "2023-11-15"}
       ],
-      "email_domains": ["towa-setsubi.example"],
+      "email_domains": ["hisago-setsubi.example"],
       "usual_channels": ["email", "edi"],
-      "contact": {"name": "東和設備工業 経理部", "phone": "03-0000-2002"}
+      "contact": {"name": "ヒサゴ設備 経理部", "phone": "03-0000-2002"}
     },
     {
       "id": "V003",
-      "name": "みどり運送有限会社",
-      "holder_kana": "ミドリウンソウ(ユ",
+      "name": "ノギク運送有限会社",
+      "holder_kana": "ノギクウンソウ(ユ",
       "accounts": [
-        {"bank_name": "かえで銀行", "branch_name": "港支店", "account_type": "ordinary", "number": "2468013", "holder_kana": "ミドリウンソウ(ユ", "registered_on": "2025-02-01"}
+        {"bank_name": "いさな銀行", "branch_name": "港支店", "account_type": "ordinary", "number": "2468013", "holder_kana": "ノギクウンソウ(ユ", "registered_on": "2025-02-01"}
       ],
-      "email_domains": ["midori-unso.example"],
+      "email_domains": ["nogiku-unso.example"],
       "usual_channels": ["email"],
-      "contact": {"name": "みどり運送 事務所", "phone": "045-000-2003"}
+      "contact": {"name": "ノギク運送 事務所", "phone": "045-000-2003"}
     }
   ],
   "history": [

@@ -108,7 +108,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "lookalike-account-change",
     title: "Account change from a look-alike domain",
-    summary: "yarnada-kenzai.example asks to pay a new account.",
+    summary: "tsubakur0-kenzai.example asks to pay a new account.",
     normal: false,
     answers: { external: false, differs: true, "has-phone": true, confirmed: false },
     outcome: "The real supplier, called on the ledger number, never sent it. Held.",

@@ -25,16 +25,16 @@ def test_routine_invoice_shows_nothing():
     assert not result.show
 
 
-def test_account_change_after_ransomware():
-    payment, ins = scenario("account-change-after-ransomware")
+def test_account_change_tax_audit():
+    payment, ins = scenario("account-change-tax-audit")
     result = check(LEDGER, payment, ins)
     assert {f.code for f in result.findings} == {"ACCOUNT_NOT_REGISTERED", "HOLDER_MISMATCH", "SENDER_DOMAIN_LOOKALIKE"}
     lookalike = next(f for f in result.findings if f.code == "SENDER_DOMAIN_LOOKALIKE")
-    assert lookalike.facts == {"domain": "yarnada-kenzai.example", "looks_like": "yamada-kenzai.example"}
+    assert lookalike.facts == {"domain": "tsubakur0-kenzai.example", "looks_like": "tsubakuro-kenzai.example"}
 
 
 def test_callback_number_comes_from_ledger_not_instruction():
-    payment, ins = scenario("account-change-after-ransomware")
+    payment, ins = scenario("account-change-tax-audit")
     result = check(LEDGER, payment, ins)
     assert result.verify_with is not None
     assert result.verify_with.phone == "03-0000-2001"
@@ -93,23 +93,24 @@ def test_unregistered_domain_from_known_supplier():
 
 def test_supplier_contact_sharing_staff_family_name_is_not_staff():
     payment, ins = scenario("routine-invoice")
-    ins = ins.model_copy(update={"sender_name": "山田建材 経理 鈴木"})
+    ins = ins.model_copy(update={"sender_name": "ツバクロ建材 経理 鈴木"})
     assert codes(payment, ins) == set()
 
 
 def test_wording_does_not_trigger_anything():
     # "Urgent" or "keep this quiet" is easy for a fraudster to drop, so it is not a signal on its own.
     payment, ins = scenario("routine-invoice")
-    ins = ins.model_copy(update={"sender_name": "【至急・内密に】山田建材 営業部 田中"})
+    ins = ins.model_copy(update={"sender_name": "【至急・内密に】ツバクロ建材 営業部 田中"})
     assert codes(payment, ins) == set()
 
 
 @pytest.mark.parametrize(
     ("printed", "registered"),
     [
-        ("ﾔﾏﾀﾞｹﾝｻﾞｲ(ｶ", "ヤマダケンザイ(カ"),
-        ("カ)ヤマダケンザイ", "ヤマダケンザイ（カ"),
-        ("トウワセツビコウギョウ(カ", "トウワセツビコウギヨウ(カ"),
+        ("ﾂﾊﾞｸﾛｹﾝｻﾞｲ(ｶ", "ツバクロケンザイ(カ"),
+        ("カ)ツバクロケンザイ", "ツバクロケンザイ（カ"),
+        ("ヒサゴセツビ(カ", "カ)ヒサゴセツビ"),
+        ("ショウワコウギョウ(カ", "シヨウワコウギヨウ(カ"),
     ],
 )
 def test_holder_names_match_across_bank_notation(printed, registered):
@@ -119,11 +120,11 @@ def test_holder_names_match_across_bank_notation(printed, registered):
 @pytest.mark.parametrize(
     ("domain", "expected"),
     [
-        ("yarnada-kenzai.example", True),
-        ("yamada-kenzal.example", True),
-        ("yamada-kenzai.example", False),
-        ("midori-unso.example", False),
+        ("tsubakur0-kenzai.example", True),
+        ("tsubakuro-kenzal.example", True),
+        ("tsubakuro-kenzai.example", False),
+        ("nogiku-unso.example", False),
     ],
 )
 def test_lookalike_domains(domain, expected):
-    assert looks_like(domain, "yamada-kenzai.example") is expected
+    assert looks_like(domain, "tsubakuro-kenzai.example") is expected

@@ -9,73 +9,74 @@
     "payment": {
       "id": "P-1001",
       "vendor_id": "V001",
-      "payee_name": "山田建材株式会社",
+      "payee_name": "ツバクロ建材株式会社",
       "account": {
-        "bank_name": "かえで銀行",
+        "bank_name": "いさな銀行",
         "branch_name": "本店",
         "account_type": "ordinary",
         "number": "1234567",
-        "holder_kana": "ヤマダケンザイ(カ"
+        "holder_kana": "ツバクロケンザイ(カ"
       },
       "amount": 462000,
       "requested_on": "2026-10-10"
     },
     "instruction": {
       "channel": "email",
-      "sender_name": "山田建材 営業部 田中",
-      "sender_address": "tanaka@yamada-kenzai.example",
-      "payee_name": "山田建材株式会社",
+      "sender_name": "ツバクロ建材 営業部 田中",
+      "sender_address": "tanaka@tsubakuro-kenzai.example",
+      "payee_name": "ツバクロ建材株式会社",
       "account_number": "1234567",
-      "account_holder": "ヤマダケンザイ(カ",
+      "account_holder": "ツバクロケンザイ(カ",
       "amount": 462000
     }
   },
   {
-    "id": "account-change-after-ransomware",
-    "title": "Supplier says its bank account changed after a ransomware attack",
+    "id": "account-change-tax-audit",
+    "title": "Supplier says its bank account is frozen during a tax audit",
     "originals": [
       "account-change.email.txt"
     ],
     "payment": {
       "id": "P-1002",
       "vendor_id": "V001",
-      "payee_name": "山田建材株式会社",
+      "payee_name": "ツバクロ建材株式会社",
       "account": {
-        "bank_name": "あおば銀行",
+        "bank_name": "ゆうなぎ銀行",
         "branch_name": "新宿支店",
         "account_type": "ordinary",
         "number": "8812345",
-        "holder_kana": "ヤマダ タロウ"
+        "holder_kana": "オカノ タロウ"
       },
       "amount": 486000,
       "requested_on": "2026-10-10"
     },
     "instruction": {
       "channel": "email",
-      "sender_name": "山田建材 営業部 田中",
-      "sender_address": "tanaka@yarnada-kenzai.example",
-      "payee_name": "山田建材株式会社",
+      "sender_name": "ツバクロ建材 営業部 田中",
+      "sender_address": "tanaka@tsubakur0-kenzai.example",
+      "payee_name": "ツバクロ建材株式会社",
       "account_number": "8812345",
-      "account_holder": "ヤマダ タロウ",
+      "account_holder": "オカノ タロウ",
       "amount": 486000
     }
   },
   {
     "id": "ceo-chat-urgent-transfer",
-    "title": "The CEO asks for an urgent transfer in a chat app",
+    "title": "The CEO moves to LINE by email and asks for an urgent transfer",
     "originals": [
+      "ceo-line-invite.email.txt",
       "ceo-chat.line.png"
     ],
     "payment": {
       "id": "P-1003",
       "vendor_id": null,
-      "payee_name": "合同会社ネクストリンク",
+      "payee_name": "合同会社ルリカケ",
       "account": {
-        "bank_name": "あおば銀行",
+        "bank_name": "ゆうなぎ銀行",
         "branch_name": "渋谷支店",
         "account_type": "ordinary",
         "number": "5503921",
-        "holder_kana": "ネクストリンク(ド"
+        "holder_kana": "ド)ルリカケ"
       },
       "amount": 3000000,
       "requested_on": "2026-10-10"
@@ -86,7 +87,7 @@
       "sender_address": null,
       "payee_name": null,
       "account_number": "5503921",
-      "account_holder": "ネクストリンク(ド",
+      "account_holder": "ド)ルリカケ",
       "amount": 3000000
     }
   }
