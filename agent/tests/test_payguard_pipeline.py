@@ -211,3 +211,12 @@ def test_listed_link_blocks_an_otherwise_routine_payment():
     response = respond(demo.scenario_for("P-1004"), dict(state))
     assert response.tier == "block"
     assert response.notice is not None and response.notice.action.startswith("This payment cannot be approved")
+
+
+def test_model_calls_have_a_timeout_and_one_retry():
+    from app.payguard.explain import explainer_agent
+    from app.payguard.reader import reader_agent
+
+    for agent in (reader_agent, explainer_agent):
+        http = agent.generate_content_config.http_options
+        assert http.timeout == 25_000 and http.retry_options.attempts == 2

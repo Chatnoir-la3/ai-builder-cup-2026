@@ -17,6 +17,7 @@ from google.genai import types
 from pydantic import BaseModel, Field
 
 from .models import CheckResult, Contact, Finding, FindingCode
+from .reader import MODEL_HTTP_OPTIONS
 
 MAX_REASONS = 2
 MAX_CHARS = 220
@@ -207,6 +208,8 @@ explainer_agent = Agent(
     output_key="explanation",
     before_model_callback=_only_findings,
     generate_content_config=types.GenerateContentConfig(
-        temperature=0, thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+        temperature=0,
+        thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW),
+        http_options=MODEL_HTTP_OPTIONS,
     ),
 )
