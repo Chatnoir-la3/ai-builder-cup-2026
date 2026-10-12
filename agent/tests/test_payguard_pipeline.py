@@ -7,23 +7,26 @@ from app.payguard import demo
 from app.payguard.explain import Explanation, Reason, acceptable, notice, template_notice, top_findings
 from app.payguard.models import Contact, Finding
 from app.payguard.pipeline import check_node, respond
-from app.payguard.reader import FIELDS, Evidence, Reading
+from app.payguard.reader import FIELDS, Evidence, Reading, _supports
 
 TAX_AUDIT = "P-1002"
 CALLBACK = Contact(name="ツバクロ建材 営業部 田中", phone="03-0000-2001")
 
 
 def faithful_reading(payment_id: str) -> Reading:
-    """A reading whose every value is backed by the first original, as a careful model would return it."""
+    """A reading whose every value quotes the original that shows it, as a careful model would return it."""
     scenario = demo.scenario_for(payment_id)
-    first = demo.originals(scenario)[0]
+    originals = demo.originals(scenario)
     values = scenario.instruction.model_dump()
-    evidence = [
-        Evidence(field=f, source=1, quote=first.text if first.is_text else str(values[f]))
-        for f in FIELDS
-        if values[f] is not None
-    ]
-    return Reading(instruction=scenario.instruction, evidence=evidence)
+
+    def evidence(field: str) -> Evidence:
+        for i, o in enumerate(originals, 1):
+            if o.is_text and _supports(field, values[field], o.text):
+                return Evidence(field=field, source=i, quote=o.text)
+        image = next(i for i, o in enumerate(originals, 1) if not o.is_text)
+        return Evidence(field=field, source=image, quote=str(values[field]))
+
+    return Reading(instruction=scenario.instruction, evidence=[evidence(f) for f in FIELDS if values[f] is not None])
 
 
 def ransom_findings() -> list[Finding]:
@@ -83,15 +86,31 @@ def test_check_node_hands_the_explainer_findings_only():
     assert "税務調査" not in json.dumps(payload, ensure_ascii=False)
 
 
-def test_misread_value_does_not_reach_the_rules():
+def test_misread_value_does_not_reach_the_rules_and_asks_for_a_call():
     reading = faithful_reading("P-1001")
     # The model claims a different account but quotes nothing that says so.
     reading.instruction.account_number = "9999999"
     reading.evidence = [e for e in reading.evidence if e.field != "account_number"]
     reading.evidence.append(Evidence(field="account_number", source=1, quote="普通 9999999"))
     event = check_node(reading.model_dump(), "P-1001")
-    assert event.actions.route == "quiet"
-    assert event.actions.state_delta["grounded"]["unverified"] == ["account_number"]
+    state = event.actions.state_delta
+    assert state["grounded"]["unverified"] == ["account_number"]
+    assert state["grounded"]["instruction"]["account_number"] is None
+    # The account check on the reading could not run, so it is not passed quietly.
+    assert event.actions.route == "explain"
+    assert [f["code"] for f in state["check"]["findings"]] == ["NOT_IN_ORIGINAL"]
+
+
+def test_failed_web_risk_lookup_is_not_passed_quietly(monkeypatch):
+    from app.payguard import lookups
+
+    def down(urls):
+        raise RuntimeError("unavailable")
+
+    monkeypatch.setattr(lookups, "listed", down)
+    event = check_node(faithful_reading("P-1004").model_dump(), "P-1004")
+    assert event.actions.route == "explain"
+    assert [f["code"] for f in event.actions.state_delta["check"]["findings"]] == ["LOOKUP_FAILED"]
 
 
 # --- explainer checks -------------------------------------------------------
@@ -155,6 +174,8 @@ def test_template_notice_for_every_code_passes_its_own_checks():
         Finding(code="NEW_COMPANY", facts={"payee": "ウトウ商事株式会社", "days": 30}),
         Finding(code="HOLDER_NOT_COMPANY", facts={"payee": "ヒタキ精機株式会社", "actual": "スズキ タロウ"}),
         Finding(code="NEW_DOMAIN", facts={"domain": "utou-shoji.example", "days": 5}),
+        Finding(code="NOT_IN_ORIGINAL", facts={"fields": "amount"}),
+        Finding(code="LOOKUP_FAILED", facts={"lookup": "Google Web Risk"}),
     ]
     for f in findings:
         n = template_notice([f], None)

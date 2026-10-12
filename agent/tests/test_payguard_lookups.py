@@ -76,7 +76,7 @@ def test_reserved_domains_are_not_looked_up(domain):
     assert lookups.registered_on(domain, get=get) is None
 
 
-def test_fetch_turns_failures_into_unknown(monkeypatch):
+def test_fetch_records_failures_as_unknown(monkeypatch):
     def boom(*a, **k):
         raise RuntimeError("network")
 
@@ -85,6 +85,7 @@ def test_fetch_turns_failures_into_unknown(monkeypatch):
     ins = Instruction(channel="email", sender_address="billing@utou-shoji.jp")
     result = lookups.fetch(ins, [text("https://a.net/")], TODAY)
     assert result.listed_urls == [] and result.domain_age_days is None
+    assert result.failed == ["rdap", "web_risk"]
 
 
 def test_fetch_gives_domain_age(monkeypatch):

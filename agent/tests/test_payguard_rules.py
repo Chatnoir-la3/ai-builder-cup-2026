@@ -142,3 +142,31 @@ def test_holder_names_match_across_bank_notation(printed, registered):
 )
 def test_lookalike_domains(domain, expected):
     assert looks_like(domain, "tsubakuro-kenzai.example") is expected
+
+
+@pytest.mark.parametrize("fields", [["amount"], ["sender_address", "account_number"], ["sender_name"]])
+def test_value_not_in_original_asks_for_a_call(fields):
+    payment, ins = scenario("routine-invoice")
+    result = check(LEDGER, payment, ins.model_copy(update={f: None for f in fields}), unverified=fields)
+    assert [f.code for f in result.findings] == ["NOT_IN_ORIGINAL"]
+    assert result.findings[0].fields == fields
+    assert result.tier == "verify" and result.verify_with is not None
+
+
+def test_unverified_field_the_rules_do_not_use_is_not_a_finding():
+    result = check(LEDGER, *scenario("routine-invoice"), unverified=["payee_name", "account_holder"])
+    assert result.findings == []
+
+
+def test_failed_web_risk_lookup_asks_for_a_call():
+    from app.payguard.models import Lookups
+
+    result = check(LEDGER, *scenario("routine-invoice"), Lookups(failed=["web_risk"]))
+    assert [f.code for f in result.findings] == ["LOOKUP_FAILED"]
+    assert result.tier == "verify"
+
+
+def test_failed_domain_age_lookup_alone_is_not_a_finding():
+    from app.payguard.models import Lookups
+
+    assert check(LEDGER, *scenario("routine-invoice"), Lookups(failed=["rdap"])).findings == []

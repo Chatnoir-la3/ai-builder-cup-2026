@@ -18,7 +18,9 @@ export type FindingCode =
   | "COMPANY_NOT_FOUND"
   | "NEW_COMPANY"
   | "HOLDER_NOT_COMPANY"
-  | "NEW_DOMAIN";
+  | "NEW_DOMAIN"
+  | "NOT_IN_ORIGINAL"
+  | "LOOKUP_FAILED";
 export type InstructionField =
   | "sender_name"
   | "sender_address"

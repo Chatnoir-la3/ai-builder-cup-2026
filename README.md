@@ -40,6 +40,7 @@ For a Verify payment, choose who is calling, record whether the payee confirmed,
 ![Approval flow](docs/flow.svg)
 
 - **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code checks that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, look-alike or unregistered sender domains, unusual channels. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
+- **A check that cannot run does not pass.** If the original does not show a value the rules use (sender, sender address, account number, amount), or Google Web Risk cannot be reached, that is a finding of its own and the approver is asked to call. The account, holder and amount being sent are always checked, since they come from the transfer itself, not from the reading.
 - **Lookups add what the ledger cannot know.** Google Web Risk checks the links in the instruction, and RDAP gives the sender domain's age. For a new payee with nobody in the ledger to call, the finder asks Gemini with Google Search for the payee's official number. Gemini is given the payee's name only, never the instruction. Code uses the number only if a grounded page shows it with the payee's name, the page is not on the sender's domain, and the number is not in the instruction.
 - **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them, and gives the number to call from the ledger or the finder. Otherwise a fixed template is used.
 - **The company's rules decide, and code enforces them.**
@@ -66,7 +67,7 @@ Two parts, both on the app's **Evaluation** page: how well Gemini reads the orig
 | Runs where the rules reach the expected findings | 30 / 30 |
 | Reading time | 6.3 s median, 22.1 s longest, no failed runs |
 
-The 3 cleared values are the amount written as 48万6千円. Gemini read it as ¥486,000 each time, but the quote has no such digits, so the code check removed it and the approver is told the amount was not confirmed. Run it again with `PYTHONPATH=. uv run python -m app.payguard.readereval` (calls Gemini).
+The 3 cleared values are the amount written as 48万6千円. Gemini read it as ¥486,000 each time, but the quote has no such digits, so the code check removed it. The amount check then cannot run, so the check does not pass quietly: it asks for a call, with "Not confirmed in the original: amount". Run it again with `PYTHONPATH=. uv run python -m app.payguard.readereval` (calls Gemini).
 
 ### Rules
 
@@ -86,7 +87,7 @@ The ledger rules alone stop every attack. The lookups matter for genuine new sup
 
 - With one person in accounts payable, there is no second approver. The check still flags the payment (case A17).
 - The company registry lookup is designed and its rules are in place, but it is not connected: Japan's corporate number API needs an application ID. The demo leaves it out.
-- The reader evaluation is small (10 cases). Fields the reader cannot match to the original are shown as "Not confirmed in the original".
+- The reader evaluation is small (10 cases). A value the reader cannot match to an image original is kept if its own quote supports it; only text originals are matched word for word.
 
 ## Architecture
 

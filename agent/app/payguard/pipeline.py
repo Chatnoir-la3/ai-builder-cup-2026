@@ -52,10 +52,10 @@ def check_node(node_input: object, payment_id: str):
     grounded = ground(_as_reading(node_input), originals)
     found = lookups.fetch(grounded.instruction, originals, scenario.payment.requested_on)
     book = ledger.current()
-    result = check(book, scenario.payment, grounded.instruction, found)
+    result = check(book, scenario.payment, grounded.instruction, found, grounded.unverified)
     if result.verify_with is None and scenario.payment.vendor_id is None:
         found.official_contact = _official(scenario.payment.payee_name, originals, grounded.instruction.sender_address)
-        result = check(book, scenario.payment, grounded.instruction, found)
+        result = check(book, scenario.payment, grounded.instruction, found, grounded.unverified)
     return Event(
         state={
             "grounded": grounded.model_dump(mode="json"),

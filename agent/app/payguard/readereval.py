@@ -7,6 +7,8 @@ Only the fields the rules use are scored. After the code check (`reader.ground`)
 - missed: Gemini returned nothing although the original shows it,
 - wrong: a value different from the expected one reached the rules. This is the one that matters.
 Each run also counts as same-findings when the rules reach the findings they reach on the expected reading.
+A cleared value adds a "not confirmed in the original" finding of its own, which asks for a call; that one
+is not counted against the run, but a finding the cleared value made the rules miss is.
 A run that fails (the model call times out after its retry) is counted as failed: in the app the check
 then says it could not run, and nothing is approved on it. Every run records how long the reading took.
 
@@ -96,10 +98,10 @@ def outcome(field: str, expected: Instruction, run: Run) -> Outcome:
 def same_findings(case: ReaderCase, run: Run) -> bool:
     ledger, payment = demo.ledger(), demo.scenario_for(case.payment_of).payment
 
-    def codes(ins: Instruction) -> set[str]:
-        return {f.code for f in check(ledger, payment, ins).findings}
+    def codes(ins: Instruction, unverified: list[str]) -> set[str]:
+        return {f.code for f in check(ledger, payment, ins, unverified=unverified).findings} - {"NOT_IN_ORIGINAL"}
 
-    return codes(run.grounded) == codes(case.expected)
+    return codes(run.grounded, run.unverified) == codes(case.expected, [])
 
 
 class FieldResult(BaseModel):

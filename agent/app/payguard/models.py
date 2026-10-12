@@ -92,13 +92,15 @@ class Instruction(BaseModel):
 
 class Lookups(BaseModel):
     """Facts fetched before the check: by code (Web Risk, company registry, domain registration) and by the
-    finder (the payee's official number). Unknown stays None, and the rules then say nothing about it."""
+    finder (the payee's official number). Unknown stays None, and the rules then say nothing about it,
+    except that a Web Risk lookup that failed is a finding of its own."""
 
     listed_urls: list[str] = Field(default_factory=list, description="Links in the instruction that Web Risk lists")
     domain_age_days: int | None = Field(default=None, description="Age of the sender's email domain")
     company_found: bool | None = Field(default=None, description="Whether a new payee is in the company registry")
     company_age_days: int | None = None
     official_contact: Contact | None = None
+    failed: list[str] = Field(default_factory=list, description="Lookups that could not be made, such as web_risk")
 
 
 FindingCode = Literal[
@@ -117,6 +119,8 @@ FindingCode = Literal[
     "NEW_COMPANY",
     "HOLDER_NOT_COMPANY",
     "NEW_DOMAIN",
+    "NOT_IN_ORIGINAL",
+    "LOOKUP_FAILED",
 ]
 Tier = Literal["pass", "verify", "block"]
 BLOCKING: frozenset[str] = frozenset({"URL_LISTED", "COMPANY_NOT_FOUND"})
