@@ -22,13 +22,20 @@ MAX_REASONS = 2
 MAX_CHARS = 220
 
 # Most telling first: where the money goes, then who is asking, then how much.
+# Reasons that block approval come before everything else.
 PRIORITY: tuple[str, ...] = (
+    "URL_LISTED",
+    "COMPANY_NOT_FOUND",
     "NEW_PAYEE",
     "ACCOUNT_NOT_REGISTERED",
     "SENDER_DOMAIN_LOOKALIKE",
     "HOLDER_MISMATCH",
+    "HOLDER_NOT_COMPANY",
     "UNUSUAL_CHANNEL",
     "ACCOUNT_RECENTLY_REGISTERED",
+    "ACCOUNT_UNVERIFIED",
+    "NEW_COMPANY",
+    "NEW_DOMAIN",
     "SENDER_DOMAIN_UNREGISTERED",
     "AMOUNT_ABOVE_HISTORY",
     "INSTRUCTION_MISMATCH",
@@ -87,16 +94,35 @@ def _template_reason(f: Finding) -> str:
             return f"{x['who']} does not usually send payment instructions by {x['channel']}."
         case "INSTRUCTION_MISMATCH":
             return "The instruction and the transfer you are about to approve do not match."
+        case "ACCOUNT_UNVERIFIED":
+            return f"This account for {x['vendor']} has never been paid and was never confirmed by a callback."
+        case "URL_LISTED":
+            return f"The instruction links to {x['url']}, which Google Web Risk lists as unsafe."
+        case "COMPANY_NOT_FOUND":
+            return f"{x['payee']} cannot be found in the company registry."
+        case "NEW_COMPANY":
+            return f"{x['payee']} was registered as a company {x['days']} days ago."
+        case "HOLDER_NOT_COMPANY":
+            return f"{x['payee']} is a company, but the account holder ({x['actual']}) is not."
+        case "NEW_DOMAIN":
+            return f"The email domain {x['domain']} was registered {x['days']} days ago."
     return "This payment differs from your usual pattern."
 
 
 def _template_action(verify_with: Contact | None) -> str:
     if verify_with is None:
         return "Before approving, confirm this payee through a contact you already know, not one given in the message."
-    return (
-        f"Before approving, call {verify_with.name} at {verify_with.phone} "
-        "(from your own records, not from the message) to confirm."
-    )
+    where = "the payee's official number" if verify_with.source == "official" else "from your own records"
+    return f"Before approving, call {verify_with.name} at {verify_with.phone} ({where}, not from the message) to confirm."
+
+
+def block_action(findings: list[Finding]) -> str:
+    codes = {f.code for f in findings}
+    if "URL_LISTED" in codes:
+        return "This payment cannot be approved: the instruction links to a site Google lists as unsafe. Tell your bank."
+    if "COMPANY_NOT_FOUND" in codes:
+        return "This payment cannot be approved: the payee is not in the company registry."
+    return "This payment cannot be approved until you have an independent number for the payee to confirm it."
 
 
 def template_notice(findings: list[Finding], verify_with: Contact | None) -> Notice:
@@ -135,8 +161,13 @@ def notice(explanation: Explanation | None, findings: list[Finding], verify_with
         return None
     if explanation is not None and acceptable(explanation, findings, verify_with):
         reasons = sorted(explanation.reasons, key=lambda r: PRIORITY.index(r.code))
-        return Notice(action=explanation.action, reasons=reasons, source="model")
-    return template_notice(findings, verify_with)
+        result = Notice(action=explanation.action, reasons=reasons, source="model")
+    else:
+        result = template_notice(findings, verify_with)
+    if CheckResult(findings=findings, verify_with=verify_with).tier == "block":
+        # The rules forbid approval, so the action is fixed text, not a callback the model suggests.
+        result.action = block_action(findings)
+    return result
 
 
 def explain_input(result: CheckResult) -> ExplainInput:
@@ -146,12 +177,13 @@ def explain_input(result: CheckResult) -> ExplainInput:
 EXPLAINER_INSTRUCTION = """\
 You write the short notice an accounts-payable approver sees just before approving a bank transfer.
 The user message is JSON with `findings` (a code and the facts that differ from the company's usual
-pattern) and `verify_with` (a contact from the company's own records, or null).
+pattern) and `verify_with` (who to call back and where the number is from, or null).
 
 Write:
 - action: one sentence telling the approver what to do before approving. If verify_with is given, tell
-  them to call that person at that phone number and say the number is from their own records, not from
-  the message. If it is null, tell them to confirm through a contact they already know.
+  them to call that person at that phone number and say where the number is from: their own records
+  (source "ledger") or the payee's official number (source "official"), not the message. If it is null,
+  tell them to confirm through a contact they already know.
 - reasons: exactly one item per finding, with its code, stating that fact in one plain sentence.
 
 Use only the facts given. Do not add numbers that are not in the facts. Do not say the payment is a fraud

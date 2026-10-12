@@ -44,6 +44,12 @@ export const FINDING_LABEL: Record<FindingCode, string> = {
   SENDER_DOMAIN_UNREGISTERED: "Unregistered domain",
   UNUSUAL_CHANNEL: "Unusual channel",
   INSTRUCTION_MISMATCH: "Instruction mismatch",
+  ACCOUNT_UNVERIFIED: "Account never confirmed",
+  URL_LISTED: "Unsafe link",
+  COMPANY_NOT_FOUND: "Not in company registry",
+  NEW_COMPANY: "New company",
+  HOLDER_NOT_COMPANY: "Holder is not a company",
+  NEW_DOMAIN: "New email domain",
 };
 
 export const FIELD_LABEL: Record<InstructionField, string> = {

@@ -22,11 +22,15 @@ class BankAccount(BaseModel):
     number: str
     holder_kana: str
     registered_on: date | None = None
+    verified_on: date | None = Field(default=None, description="When a callback to the ledger contact confirmed this account")
 
 
 class Contact(BaseModel):
     name: str
     phone: str
+    source: Literal["ledger", "official"] = Field(
+        default="ledger", description="The company's own ledger, or the payee's official number found by the finder"
+    )
 
 
 class Vendor(BaseModel):
@@ -86,6 +90,17 @@ class Instruction(BaseModel):
     amount: int | None = None
 
 
+class Lookups(BaseModel):
+    """Facts fetched before the check: by code (Web Risk, company registry, domain registration) and by the
+    finder (the payee's official number). Unknown stays None, and the rules then say nothing about it."""
+
+    listed_urls: list[str] = Field(default_factory=list, description="Links in the instruction that Web Risk lists")
+    domain_age_days: int | None = Field(default=None, description="Age of the sender's email domain")
+    company_found: bool | None = Field(default=None, description="Whether a new payee is in the company registry")
+    company_age_days: int | None = None
+    official_contact: Contact | None = None
+
+
 FindingCode = Literal[
     "NEW_PAYEE",
     "ACCOUNT_NOT_REGISTERED",
@@ -96,7 +111,15 @@ FindingCode = Literal[
     "SENDER_DOMAIN_UNREGISTERED",
     "UNUSUAL_CHANNEL",
     "INSTRUCTION_MISMATCH",
+    "ACCOUNT_UNVERIFIED",
+    "URL_LISTED",
+    "COMPANY_NOT_FOUND",
+    "NEW_COMPANY",
+    "HOLDER_NOT_COMPANY",
+    "NEW_DOMAIN",
 ]
+Tier = Literal["pass", "verify", "block"]
+BLOCKING: frozenset[str] = frozenset({"URL_LISTED", "COMPANY_NOT_FOUND"})
 
 
 class Finding(BaseModel):
@@ -107,8 +130,19 @@ class Finding(BaseModel):
 
 class CheckResult(BaseModel):
     findings: list[Finding]
-    verify_with: Contact | None = Field(description="Callback contact taken from the ledger, never from the instruction")
+    verify_with: Contact | None = Field(
+        description="Callback contact from the ledger, or the payee's official number; never from the instruction"
+    )
 
     @property
     def show(self) -> bool:
         return bool(self.findings)
+
+    @property
+    def tier(self) -> Tier:
+        """pass: approve as usual. verify: call, log it, second approver. block: cannot be approved."""
+        if not self.findings:
+            return "pass"
+        if BLOCKING & {f.code for f in self.findings} or self.verify_with is None:
+            return "block"
+        return "verify"

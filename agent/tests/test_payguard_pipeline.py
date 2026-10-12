@@ -140,6 +140,12 @@ def test_template_notice_for_every_code_passes_its_own_checks():
         Finding(code="SENDER_DOMAIN_UNREGISTERED", facts={"domain": "free.example", "registered": "tsubakuro-kenzai.example"}),
         Finding(code="UNUSUAL_CHANNEL", facts={"who": "佐藤 一郎 (代表取締役)", "channel": "LINE", "usual": "email"}),
         Finding(code="INSTRUCTION_MISMATCH", facts={"instruction_amount": 1, "payment_amount": 2}),
+        Finding(code="ACCOUNT_UNVERIFIED", facts={"vendor": "ツバクロ建材株式会社"}),
+        Finding(code="URL_LISTED", facts={"url": "https://invoice.example/login"}),
+        Finding(code="COMPANY_NOT_FOUND", facts={"payee": "株式会社ミサゴ交易"}),
+        Finding(code="NEW_COMPANY", facts={"payee": "ウトウ商事株式会社", "days": 30}),
+        Finding(code="HOLDER_NOT_COMPANY", facts={"payee": "ヒタキ精機株式会社", "actual": "スズキ タロウ"}),
+        Finding(code="NEW_DOMAIN", facts={"domain": "utou-shoji.example", "days": 5}),
     ]
     for f in findings:
         n = template_notice([f], None)
@@ -149,6 +155,26 @@ def test_template_notice_for_every_code_passes_its_own_checks():
 
 def test_no_findings_no_notice():
     assert notice(None, [], None) is None
+
+
+def test_official_number_is_named_as_official():
+    official = Contact(name="ヨシキリ工業 代表", phone="03-0000-3001", source="official")
+    n = template_notice([Finding(code="NEW_PAYEE", facts={"payee": "株式会社ヨシキリ工業"})], official)
+    assert "official number" in n.action and "03-0000-3001" in n.action
+
+
+@pytest.mark.parametrize(
+    ("findings", "verify_with", "says"),
+    [
+        ([Finding(code="URL_LISTED", facts={"url": "https://invoice.example/login"})], CALLBACK, "unsafe"),
+        ([Finding(code="COMPANY_NOT_FOUND", facts={"payee": "株式会社ミサゴ交易"})], CALLBACK, "registry"),
+        ([Finding(code="NEW_PAYEE", facts={"payee": "ウトウ商事株式会社"})], None, "independent number"),
+    ],
+)
+def test_blocked_payment_notice_says_it_cannot_be_approved(findings, verify_with, says):
+    n = notice(None, findings, verify_with)
+    assert n is not None and n.action.startswith("This payment cannot be approved") and says in n.action
+    assert "call" not in n.action
 
 
 # --- response ---------------------------------------------------------------
