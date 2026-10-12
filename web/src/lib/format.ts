@@ -1,4 +1,4 @@
-import type { Channel, FindingCode, InstructionField, Status } from "@/lib/payguard";
+import type { Channel, FindingCode, InstructionField, Status, Tier } from "@/lib/payguard";
 
 const yen = new Intl.NumberFormat("en-US", { style: "currency", currency: "JPY" });
 const day = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "Asia/Tokyo" });
@@ -62,3 +62,15 @@ export const FIELD_LABEL: Record<InstructionField, string> = {
 };
 
 export const ACCOUNT_TYPE_LABEL = { ordinary: "Ordinary", current: "Current" } as const;
+
+export const TIER_LABEL: Record<Tier, string> = {
+  pass: "Approve as usual",
+  verify: "Call, then second approval",
+  block: "Cannot be approved",
+};
+
+export const TIER_CLASS: Record<Tier, string> = {
+  pass: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+  verify: "bg-amber-100 text-amber-900 hover:bg-amber-100",
+  block: "bg-red-100 text-red-900 hover:bg-red-100",
+};

@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
-from . import demo, ledger
+from . import demo, evalset, ledger
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
 from .models import CheckResult, Channel, Contact, Payment, Tier
 from .pipeline import CheckResponse, run_check
@@ -144,6 +144,24 @@ def decide(payment_id: str, req: DecisionRequest) -> PaymentDetail:
     except DecisionError as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
     return _detail(scenario)
+
+
+class Evaluation(BaseModel):
+    summary: evalset.Summary
+    cases: list[evalset.CaseResult]
+
+
+@router.get("/demo/eval")
+def evaluation() -> Evaluation:
+    rows = evalset.results()
+    return Evaluation(summary=evalset.summary(rows), cases=rows)
+
+
+@router.get("/demo/eval/{case_id}")
+def evaluation_case(case_id: str) -> evalset.CaseDetail:
+    if case_id not in {c.id for c in evalset.CASES}:
+        raise HTTPException(status_code=404, detail="unknown case")
+    return evalset.detail(case_id)
 
 
 @router.post("/demo/reset")
