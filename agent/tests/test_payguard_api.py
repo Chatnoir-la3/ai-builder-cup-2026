@@ -102,7 +102,38 @@ def test_flagged_payment_needs_a_confirmed_call_and_a_second_person(fake_check):
     ok = approve("P-1002", CEO).json()
     assert ok["status"] == "approved"
     assert [h["event"] for h in ok["history"]] == ["received", "checked", "called", "approved"]
-    assert ok["history"][-1]["detail"] == f"Second approval by {CEO}, after {AP}'s call to the ledger number"
+    assert ok["history"][-1]["detail"] == (
+        f"Second approval by {CEO}, after {AP}'s call to the ledger number; recorded in the ledger"
+    )
+
+
+def test_approval_is_recorded_in_the_ledger_and_reset_forgets_it(fake_check):
+    from app.payguard import demo, ledger
+    from app.payguard.rules import check
+
+    s = demo.scenario_for("P-1002")
+    before = len(ledger.current().history)
+    client.post("/check", json={"payment_id": "P-1002"})
+    call("P-1002", AP, True)
+    approve("P-1002", CEO)
+    after = ledger.current()
+    account = next(a for a in after.vendors[0].accounts if a.number == "8812345")
+    assert account.verified_on is not None and len(after.history) == before + 1
+    codes = {f.code for f in check(after, s.payment, s.instruction).findings}
+    assert "ACCOUNT_NOT_REGISTERED" not in codes  # the confirmed account is now known
+    client.post("/demo/reset")
+    assert len(ledger.current().history) == before
+    assert all(a.number != "8812345" for a in ledger.current().vendors[0].accounts)
+
+
+def test_routine_approval_adds_to_history_only(fake_check):
+    from app.payguard import ledger
+
+    accounts = ledger.current().vendors[0].accounts
+    client.post("/check", json={"payment_id": "P-1001"})
+    approve("P-1001")
+    assert ledger.current().vendors[0].accounts == accounts
+    assert ledger.current().history[-1].amount == 462000
 
 
 def test_unconfirmed_call_puts_payment_on_hold(fake_check):

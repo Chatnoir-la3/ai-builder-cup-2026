@@ -15,7 +15,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from pydantic import BaseModel
 
-from . import demo, finder, lookups
+from . import demo, finder, ledger, lookups
 from .explain import Explanation, Notice, explain_input, explainer_agent, notice
 from .models import CheckResult, Contact, Finding, Payment, Tier
 from .reader import GroundedReading, Reading, build_content, ground, reader_agent
@@ -51,10 +51,11 @@ def check_node(node_input: object, payment_id: str):
     originals = demo.originals(scenario)
     grounded = ground(_as_reading(node_input), originals)
     found = lookups.fetch(grounded.instruction, originals, scenario.payment.requested_on)
-    result = check(demo.ledger(), scenario.payment, grounded.instruction, found)
+    book = ledger.current()
+    result = check(book, scenario.payment, grounded.instruction, found)
     if result.verify_with is None and scenario.payment.vendor_id is None:
         found.official_contact = _official(scenario.payment.payee_name, originals, grounded.instruction.sender_address)
-        result = check(demo.ledger(), scenario.payment, grounded.instruction, found)
+        result = check(book, scenario.payment, grounded.instruction, found)
     return Event(
         state={
             "grounded": grounded.model_dump(mode="json"),

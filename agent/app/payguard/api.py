@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
-from . import demo
+from . import demo, ledger
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
 from .models import CheckResult, Channel, Contact, Payment, Tier
 from .pipeline import CheckResponse, run_check
@@ -66,7 +66,7 @@ def _scenario(payment_id: str) -> demo.Scenario:
 
 def _detail(scenario: demo.Scenario) -> PaymentDetail:
     item = store.get(scenario.payment.id)
-    vendor = next((v for v in demo.ledger().vendors if v.id == scenario.payment.vendor_id), None)
+    vendor = next((v for v in ledger.current().vendors if v.id == scenario.payment.vendor_id), None)
     return PaymentDetail(
         payment=scenario.payment,
         vendor_name=vendor.name if vendor else None,
