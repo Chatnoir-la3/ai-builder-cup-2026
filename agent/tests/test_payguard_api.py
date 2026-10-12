@@ -40,10 +40,10 @@ def fake_check(monkeypatch):
 
 def test_list_starts_pending_and_unchecked():
     rows = client.get("/demo/payments").json()
-    assert [r["id"] for r in rows] == ["P-1001", "P-1002", "P-1003"]
+    assert [r["id"] for r in rows] == ["P-1001", "P-1002", "P-1003", "P-1004"]
     assert {r["status"] for r in rows} == {"pending"}
     assert {r["findings"] for r in rows} == {None}
-    assert [r["channel"] for r in rows] == ["email", "email", "line"]
+    assert [r["channel"] for r in rows] == ["email", "email", "line", "email"]
 
 
 def test_detail_includes_text_originals_inline_and_images_by_name():
