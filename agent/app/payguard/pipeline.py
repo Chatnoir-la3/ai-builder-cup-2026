@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from . import demo
 from .explain import Explanation, Notice, explain_input, explainer_agent, notice
-from .models import CheckResult, Contact, Finding, Payment
+from .models import CheckResult, Contact, Finding, Payment, Tier
 from .reader import GroundedReading, Reading, build_content, ground, reader_agent
 from .rules import check
 
@@ -69,6 +69,7 @@ class CheckResponse(BaseModel):
     reading: GroundedReading
     findings: list[Finding]
     verify_with: Contact | None
+    tier: Tier
     notice: Notice | None
 
 
@@ -93,6 +94,7 @@ def respond(scenario: demo.Scenario, state: dict) -> CheckResponse:
         reading=GroundedReading.model_validate(state["grounded"]),
         findings=result.findings,
         verify_with=result.verify_with,
+        tier=result.tier,
         notice=notice(explanation, result.findings, result.verify_with),
     )
 

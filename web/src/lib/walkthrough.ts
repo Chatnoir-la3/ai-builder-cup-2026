@@ -49,12 +49,12 @@ export const NODES: FlowNode[] = [
   { id: "found", kind: "decision", title: "Official number found?", built: false, x: RIGHT + 20, y: 820 },
   { id: "call", kind: "step", role: "human", title: "Approver calls", detail: "The ledger or official number, never the one in the message", built: true, x: SPINE, y: 840 },
   { id: "confirmed", kind: "decision", title: "Did they confirm the request?", built: true, x: DECISION, y: 950 },
-  { id: "second", kind: "step", role: "human", title: "Call logged, second approval", detail: "Who called, when, which number", built: false, x: SPINE, y: 1090 },
+  { id: "second", kind: "step", role: "human", title: "Call logged, second approval", detail: "Who called, when, which number", built: true, x: SPINE, y: 1090 },
   { id: "send", kind: "step", role: "data", title: "Transfer sent", detail: "", built: true, x: SPINE, y: 1190 },
   { id: "recorded", kind: "end", tone: "ok", title: "Account verified in the ledger", detail: "Next time it goes through quietly", built: false, x: END, y: 1290 },
   { id: "quiet", kind: "end", tone: "ok", title: "Approve as usual", detail: "Nothing to show", built: true, x: LEFT, y: 470 },
   { id: "blocked-list", kind: "end", tone: "stop", title: "Cannot be approved", detail: "An external list flagged it", built: false, x: RIGHT + 20, y: 330 },
-  { id: "blocked-no-number", kind: "end", tone: "stop", title: "Cannot be approved", detail: "No independent number to check with", built: false, x: RIGHT + 20, y: 960 },
+  { id: "blocked-no-number", kind: "end", tone: "stop", title: "Cannot be approved", detail: "No independent number to check with", built: true, x: RIGHT + 20, y: 960 },
   { id: "held", kind: "end", tone: "hold", title: "Held, not sent", detail: "Likely impersonation; tell the bank", built: true, x: LEFT, y: 970 },
 ];
 

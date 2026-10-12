@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Phone, RotateCw } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, Phone, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -24,6 +25,7 @@ import {
   formatDayTime,
   formatYen,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { CheckResponse, FindingCode, HistoryItem, InstructionField, PaymentDetail } from "@/lib/payguard";
 
 type CheckState =
@@ -35,15 +37,16 @@ type CheckState =
 const EVENT_LABEL: Record<HistoryItem["event"], string> = {
   received: "Received",
   checked: "Checked",
+  called: "Called",
   approved: "Approved",
   held: "Put on hold",
 };
 
 // Which rows of the payment card a finding is about.
 const ROW_CODES: Record<string, FindingCode[]> = {
-  payee: ["NEW_PAYEE"],
-  account: ["ACCOUNT_NOT_REGISTERED", "ACCOUNT_RECENTLY_REGISTERED", "INSTRUCTION_MISMATCH"],
-  holder: ["HOLDER_MISMATCH"],
+  payee: ["NEW_PAYEE", "COMPANY_NOT_FOUND", "NEW_COMPANY"],
+  account: ["ACCOUNT_NOT_REGISTERED", "ACCOUNT_RECENTLY_REGISTERED", "ACCOUNT_UNVERIFIED", "INSTRUCTION_MISMATCH"],
+  holder: ["HOLDER_MISMATCH", "HOLDER_NOT_COMPANY"],
   amount: ["AMOUNT_ABOVE_HISTORY", "INSTRUCTION_MISMATCH"],
 };
 
@@ -75,19 +78,57 @@ function History({ items }: { items: HistoryItem[] }) {
   );
 }
 
+function PersonSelect({
+  value,
+  people,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  people: string[];
+  placeholder: string;
+  disabled?: boolean;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger className="w-full bg-background">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {people.map((p) => (
+          <SelectItem key={p} value={p}>
+            {p}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function NoticeCard({
   check,
-  confirmed,
-  onConfirm,
+  detail,
+  caller,
+  approver,
+  busy,
+  onCaller,
+  onApprover,
+  onLogCall,
   onRetry,
-  status,
 }: {
   check: CheckState;
-  confirmed: boolean;
-  onConfirm: (v: boolean) => void;
+  detail: PaymentDetail;
+  caller: string;
+  approver: string;
+  busy: boolean;
+  onCaller: (v: string) => void;
+  onApprover: (v: string) => void;
+  onLogCall: (confirmed: boolean) => void;
   onRetry: () => void;
-  status: PaymentDetail["status"];
 }) {
+  const { status, call } = detail;
   if (status !== "pending" || check.state === "skipped") {
     return (
       <Card>
@@ -153,6 +194,56 @@ function NoticeCard({
   }
 
   const { notice, verify_with: contact } = result;
+  const blocked = result.tier === "block";
+  const reasons = (
+    <>
+      <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
+        {notice.reasons.map((r) => (
+          <li key={r.code}>{r.text}</li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap gap-1.5">
+        {result.findings.map((f) => (
+          <Badge
+            key={f.code}
+            variant="outline"
+            className={cn("bg-background", blocked ? "border-red-300 text-red-900" : "border-amber-300 text-amber-900")}
+          >
+            {FINDING_LABEL[f.code]}
+          </Badge>
+        ))}
+      </div>
+    </>
+  );
+  const wording =
+    notice.source === "model"
+      ? "Wording by Gemini, checked against the findings by code."
+      : "Standard wording: Gemini's text did not pass the checks.";
+  const unread = unverified.length > 0 && (
+    <> Not confirmed in the original: {unverified.map((f) => FIELD_LABEL[f]).join(", ")}.</>
+  );
+
+  if (blocked) {
+    return (
+      <Card className="border-red-300 bg-red-50/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-900">
+            <Ban className="size-5" />
+            Cannot be approved
+          </CardTitle>
+          <CardDescription className="text-base font-medium text-foreground">{notice.action}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {reasons}
+          <p className="text-xs text-muted-foreground">
+            {wording} Your rules decide this, not Gemini. Put it on hold.{unread}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const confirmed = call?.confirmed === true;
   return (
     <Card className="border-amber-300 bg-amber-50/60">
       <CardHeader>
@@ -163,16 +254,13 @@ function NoticeCard({
         <CardDescription className="text-base font-medium text-foreground">{notice.action}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
-          {notice.reasons.map((r) => (
-            <li key={r.code}>{r.text}</li>
-          ))}
-        </ul>
+        {reasons}
 
         {contact && (
           <div className="rounded-md border bg-background p-3">
             <div className="text-xs text-muted-foreground">
-              {contact.source === "official" ? "The payee's official number" : "From your vendor ledger"}, not from the message
+              {contact.source === "official" ? "The payee's official number" : "From your vendor ledger"}, not from the
+              message
             </div>
             <div className="mt-1 flex items-center gap-2 font-medium">
               <Phone className="size-4" />
@@ -184,27 +272,53 @@ function NoticeCard({
           </div>
         )}
 
-        <label className="flex cursor-pointer items-start gap-2 text-sm">
-          <Checkbox checked={confirmed} onCheckedChange={(v) => onConfirm(v === true)} className="mt-0.5" />
-          <span>
-            I called {contact ? contact.name : "a contact I already know"} and confirmed this payment.
-          </span>
-        </label>
+        <div className="flex flex-col gap-2">
+          <div className="text-sm font-medium">1. Call and record the answer</div>
+          {confirmed ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-800">
+              <CheckCircle2 className="size-4" />
+              {call.by} called at {formatDayTime(call.at)}: confirmed
+            </div>
+          ) : (
+            <>
+              <PersonSelect value={caller} people={detail.approvers} placeholder="Who is calling" onChange={onCaller} />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-background"
+                  disabled={!caller || busy}
+                  onClick={() => onLogCall(true)}
+                >
+                  They confirmed it
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-background"
+                  disabled={!caller || busy}
+                  onClick={() => onLogCall(false)}
+                >
+                  They did not
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          {result.findings.map((f) => (
-            <Badge key={f.code} variant="outline" className="border-amber-300 bg-background text-amber-900">
-              {FINDING_LABEL[f.code]}
-            </Badge>
-          ))}
+        <div className="flex flex-col gap-2">
+          <div className="text-sm font-medium">2. Second approval, by someone else</div>
+          <PersonSelect
+            value={approver}
+            people={detail.approvers.filter((p) => p !== call?.by)}
+            placeholder="Second approver"
+            disabled={!confirmed}
+            onChange={onApprover}
+          />
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {notice.source === "model"
-            ? "Wording by Gemini, checked against the findings by code."
-            : "Standard wording: Gemini's text did not pass the checks."}{" "}
-          Nothing is blocked; you decide.
-          {unverified.length > 0 && <> Not confirmed in the original: {unverified.map((f) => FIELD_LABEL[f]).join(", ")}.</>}
+          {wording} Your rules need a recorded call and a second approver.{unread}
         </p>
       </CardContent>
     </Card>
@@ -215,7 +329,8 @@ export function PaymentReview({ initial }: { initial: PaymentDetail }) {
   const router = useRouter();
   const { payment, status } = initial;
   const [check, setCheck] = useState<CheckState>(status === "pending" ? { state: "running" } : { state: "skipped" });
-  const [confirmed, setConfirmed] = useState(false);
+  const [caller, setCaller] = useState("");
+  const [approver, setApprover] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
@@ -240,31 +355,36 @@ export function PaymentReview({ initial }: { initial: PaymentDetail }) {
     void runCheck();
   }, [runCheck, status]);
 
-  async function decide(decision: "approved" | "held") {
+  async function post(path: "decision" | "call", body: object) {
     setDeciding(true);
     setDecisionError(null);
     try {
-      const res = await fetch(`/api/payments/${payment.id}/decision`, {
+      const res = await fetch(`/api/payments/${payment.id}/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision, callback_confirmed: confirmed }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "The decision was not saved.");
+      if (!res.ok) throw new Error(data.error ?? "It was not saved.");
       router.refresh();
     } catch (e) {
-      setDecisionError(e instanceof Error ? e.message : "The decision was not saved.");
+      setDecisionError(e instanceof Error ? e.message : "It was not saved.");
     } finally {
       setDeciding(false);
     }
   }
 
+  const decide = (decision: "approved" | "held") => post("decision", { decision, approver: approver || null });
+
   const result = check.state === "done" ? check.result : null;
   const codes = new Set(result?.findings.map((f) => f.code) ?? []);
   const flaggedFields = new Set<InstructionField>(result?.findings.flatMap((f) => f.fields) ?? []);
   const rowFlagged = (row: keyof typeof ROW_CODES) => ROW_CODES[row].some((c) => codes.has(c));
-  const needsCallback = (result?.findings.length ?? 0) > 0;
-  const canApprove = status === "pending" && check.state === "done" && (!needsCallback || confirmed) && !deciding;
+  const call = initial.call;
+  const ready =
+    result?.tier === "pass" ||
+    (result?.tier === "verify" && call?.confirmed === true && approver !== "" && approver !== call.by);
+  const canApprove = status === "pending" && ready && !deciding;
 
   return (
     <main className="flex flex-col gap-4 p-4 md:p-6">
@@ -368,7 +488,17 @@ export function PaymentReview({ initial }: { initial: PaymentDetail }) {
             </div>
 
             <div className="flex flex-col gap-4">
-              <NoticeCard check={check} confirmed={confirmed} onConfirm={setConfirmed} onRetry={runCheck} status={status} />
+              <NoticeCard
+                check={check}
+                detail={initial}
+                caller={caller}
+                approver={approver}
+                busy={deciding}
+                onCaller={setCaller}
+                onApprover={setApprover}
+                onLogCall={(confirmed) => post("call", { by: caller, confirmed })}
+                onRetry={runCheck}
+              />
               <Card>
                 <CardHeader>
                   <CardTitle>Recent activity</CardTitle>

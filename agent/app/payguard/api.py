@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
 from . import demo
-from .approvals import Decision, DecisionError, HistoryItem, Status, store
-from .models import Channel, Payment
+from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
+from .models import CheckResult, Channel, Contact, Payment, Tier
 from .pipeline import CheckResponse, run_check
 
 router = APIRouter()
@@ -36,6 +36,10 @@ class PaymentDetail(BaseModel):
     originals: list[OriginalInfo]
     status: Status
     findings: list[str] | None
+    tier: Tier | None
+    verify_with: Contact | None
+    call: CallLog | None
+    approvers: list[str]
     history: list[HistoryItem]
 
 
@@ -43,9 +47,14 @@ class CheckRequest(BaseModel):
     payment_id: str
 
 
+class CallRequest(BaseModel):
+    by: str
+    confirmed: bool
+
+
 class DecisionRequest(BaseModel):
     decision: Decision
-    callback_confirmed: bool = False
+    approver: str | None = None  # the second approver, for a payment that needed a call
 
 
 def _scenario(payment_id: str) -> demo.Scenario:
@@ -68,6 +77,10 @@ def _detail(scenario: demo.Scenario) -> PaymentDetail:
         ],
         status=item.status,
         findings=item.findings,
+        tier=item.tier,
+        verify_with=item.verify_with,
+        call=item.call,
+        approvers=approvers(),
         history=item.history,
     )
 
@@ -109,15 +122,25 @@ def get_original(name: str) -> Response:
 async def check_payment(req: CheckRequest) -> CheckResponse:
     _scenario(req.payment_id)
     response = await run_check(req.payment_id)
-    store.checked(req.payment_id, [f.code for f in response.findings])
+    store.checked(req.payment_id, CheckResult(findings=response.findings, verify_with=response.verify_with))
     return response
+
+
+@router.post("/demo/payments/{payment_id}/call")
+def log_call(payment_id: str, req: CallRequest) -> PaymentDetail:
+    scenario = _scenario(payment_id)
+    try:
+        store.log_call(payment_id, req.by, req.confirmed)
+    except DecisionError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    return _detail(scenario)
 
 
 @router.post("/demo/payments/{payment_id}/decision")
 def decide(payment_id: str, req: DecisionRequest) -> PaymentDetail:
     scenario = _scenario(payment_id)
     try:
-        store.decide(payment_id, req.decision, req.callback_confirmed)
+        store.decide(payment_id, req.decision, req.approver)
     except DecisionError as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
     return _detail(scenario)

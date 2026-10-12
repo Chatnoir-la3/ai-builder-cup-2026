@@ -31,6 +31,7 @@ def fake_check(monkeypatch):
             reading=GroundedReading(instruction=s.instruction, evidence=[], unverified=[]),
             findings=result.findings,
             verify_with=result.verify_with,
+            tier=result.tier,
             notice=None,
         )
 
@@ -80,13 +81,58 @@ def test_routine_payment_approves_after_check(fake_check):
     assert [h["event"] for h in d["history"]] == ["received", "checked", "approved"]
 
 
-def test_flagged_payment_needs_callback_confirmation(fake_check):
+AP, CEO = "鈴木 花子", "佐藤 一郎"
+
+
+def approve(payment_id: str, approver: str | None = None):
+    return client.post(f"/demo/payments/{payment_id}/decision", json={"decision": "approved", "approver": approver})
+
+
+def call(payment_id: str, by: str, confirmed: bool):
+    return client.post(f"/demo/payments/{payment_id}/call", json={"by": by, "confirmed": confirmed})
+
+
+def test_flagged_payment_needs_a_confirmed_call_and_a_second_person(fake_check):
     client.post("/check", json={"payment_id": "P-1002"})
-    blocked = client.post("/demo/payments/P-1002/decision", json={"decision": "approved"})
-    assert blocked.status_code == 409
-    ok = client.post("/demo/payments/P-1002/decision", json={"decision": "approved", "callback_confirmed": True})
-    assert ok.json()["status"] == "approved"
-    assert ok.json()["history"][-1]["detail"] == "Callback to the ledger contact confirmed"
+    assert approve("P-1002", CEO).status_code == 409  # no call logged
+    d = call("P-1002", AP, True).json()
+    assert d["call"]["contact"]["phone"] == "03-0000-2001" and d["status"] == "pending"
+    assert approve("P-1002").status_code == 409  # no second approver
+    assert approve("P-1002", AP).status_code == 409  # the caller cannot also approve
+    ok = approve("P-1002", CEO).json()
+    assert ok["status"] == "approved"
+    assert [h["event"] for h in ok["history"]] == ["received", "checked", "called", "approved"]
+    assert ok["history"][-1]["detail"] == f"Second approval by {CEO}, after {AP}'s call to the ledger number"
+
+
+def test_unconfirmed_call_puts_payment_on_hold(fake_check):
+    client.post("/check", json={"payment_id": "P-1003"})
+    d = call("P-1003", AP, False).json()
+    assert d["status"] == "held"
+    assert approve("P-1003", CEO).status_code == 409
+
+
+def test_call_must_be_by_staff_and_only_when_needed(fake_check):
+    client.post("/check", json={"payment_id": "P-1001"})
+    assert call("P-1001", AP, True).status_code == 409  # routine: nothing to call about
+    client.post("/check", json={"payment_id": "P-1002"})
+    assert call("P-1002", "someone else", True).status_code == 409
+
+
+def test_blocked_payment_cannot_be_approved():
+    from app.payguard.models import CheckResult, Finding
+
+    store.checked("P-1003", CheckResult(findings=[Finding(code="NEW_PAYEE", facts={"payee": "x"})], verify_with=None))
+    assert approve("P-1003", CEO).status_code == 409
+    assert call("P-1003", AP, True).status_code == 409
+    assert client.post("/demo/payments/P-1003/decision", json={"decision": "held"}).json()["status"] == "held"
+
+
+def test_detail_carries_tier_and_approvers(fake_check):
+    client.post("/check", json={"payment_id": "P-1002"})
+    d = client.get("/demo/payments/P-1002").json()
+    assert d["tier"] == "verify" and d["verify_with"]["source"] == "ledger" and d["call"] is None
+    assert d["approvers"] == [CEO, AP]
 
 
 def test_hold_needs_no_check_and_decisions_are_final():
@@ -99,8 +145,8 @@ def test_decision_log_has_codes_only(fake_check, caplog):
     with caplog.at_level("INFO", logger="payguard.approvals"):
         client.post("/demo/payments/P-1002/decision", json={"decision": "held"})
     logged = caplog.records[-1].getMessage()
-    assert "ACCOUNT_NOT_REGISTERED" in logged
-    assert "8812345" not in logged and "yarnada" not in logged
+    assert "ACCOUNT_NOT_REGISTERED" in logged and '"tier": "verify"' in logged
+    assert "8812345" not in logged and "tsubakur0" not in logged and "03-0000" not in logged
 
 
 def test_reset_clears_decisions(fake_check):
