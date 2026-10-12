@@ -1,6 +1,6 @@
 "use client";
 
-import { ListChecks, ShieldCheck, Workflow } from "lucide-react";
+import { FlaskConical, ListChecks, ShieldCheck, Workflow } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -59,6 +59,14 @@ export function AppSidebar({ pending }: { pending: number | null }) {
                   <Link href="/how-it-works">
                     <Workflow />
                     <span>How it works</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/evaluation")}>
+                  <Link href="/evaluation">
+                    <FlaskConical />
+                    <span>Evaluation</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

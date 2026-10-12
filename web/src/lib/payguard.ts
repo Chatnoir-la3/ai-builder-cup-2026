@@ -95,3 +95,58 @@ export type CheckResponse = {
   tier: Tier;
   notice: Notice | null;
 };
+
+export type Instruction = {
+  channel: Channel;
+  sender_name: string | null;
+  sender_address: string | null;
+  payee_name: string | null;
+  account_number: string | null;
+  account_holder: string | null;
+  amount: number | null;
+};
+
+export type Lookups = {
+  listed_urls: string[];
+  domain_age_days: number | null;
+  company_found: boolean | null;
+  company_age_days: number | null;
+  official_contact: Contact | null;
+};
+
+export type EvalCase = {
+  id: string;
+  kind: "attack" | "genuine";
+  title: string;
+  note: string;
+  ledger_findings: FindingCode[];
+  ledger_tier: Tier;
+  findings: FindingCode[];
+  tier: Tier;
+  expected_tier: Tier;
+  as_expected: boolean;
+};
+
+export type EvalSummary = {
+  attacks: number;
+  attacks_stopped: number;
+  attacks_stopped_by_ledger: number;
+  attacks_blocked: number;
+  attacks_blocked_by_ledger: number;
+  genuine: number;
+  genuine_quiet: number;
+  genuine_calls: number;
+  genuine_blocked: number;
+  genuine_blocked_by_ledger: number;
+  as_expected: number;
+};
+
+export type Evaluation = { summary: EvalSummary; cases: EvalCase[] };
+
+export type EvalCaseDetail = EvalCase & {
+  payment: Payment;
+  instruction: Instruction;
+  lookups: Lookups;
+  reasons: { code: FindingCode; text: string }[];
+  verify_with: Contact | null;
+};

@@ -192,3 +192,17 @@ def test_list_reports_finding_counts_after_check(fake_check):
     assert rows["P-1002"]["findings"] == 3
     assert rows["P-1001"]["findings"] is None
 
+
+
+def test_evaluation_lists_every_case_with_summary():
+    d = client.get("/demo/eval").json()
+    assert len(d["cases"]) == 28 and d["summary"]["as_expected"] == 28
+    a12 = next(c for c in d["cases"] if c["id"] == "A12")
+    assert a12["tier"] == "block" and a12["ledger_tier"] == "block" and a12["kind"] == "attack"
+
+
+def test_evaluation_case_detail_and_404():
+    d = client.get("/demo/eval/L04").json()
+    assert d["ledger_tier"] == "block" and d["tier"] == "verify"
+    assert d["verify_with"]["source"] == "official"
+    assert client.get("/demo/eval/X99").status_code == 404
