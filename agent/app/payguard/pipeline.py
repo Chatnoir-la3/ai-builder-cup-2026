@@ -1,7 +1,8 @@
 """Read → check → explain, as an ADK workflow.
 
 The reader and explainer are Gemini; the check between them is plain code (the ledger rules, plus
-Web Risk and domain age fetched by code) and decides whether the explainer runs at all. A routine payment never reaches the explainer, so it costs one model call and
+Web Risk and domain age fetched by code, and for a new payee with nobody to call, an official number
+the finder found and code confirmed) and decides whether the explainer runs at all. A routine payment never reaches the explainer, so it costs one model call and
 shows nothing.
 """
 
@@ -14,11 +15,11 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from pydantic import BaseModel
 
-from . import demo, lookups
+from . import demo, finder, lookups
 from .explain import Explanation, Notice, explain_input, explainer_agent, notice
 from .models import CheckResult, Contact, Finding, Payment, Tier
 from .reader import GroundedReading, Reading, build_content, ground, reader_agent
-from .rules import check
+from .rules import _email_domain, check
 
 APP_NAME = "payguard"
 USER_ID = "demo"
@@ -36,12 +37,24 @@ def _as_reading(value: object) -> Reading:
     return Reading.model_validate(value)
 
 
+def _official(payee: str, originals: list, sender_address: str | None) -> Contact | None:
+    """The ledger has nobody to call for this new payee: ask the finder for an official number."""
+    try:
+        return finder.official_contact(payee, originals, _email_domain(sender_address))
+    except Exception as e:  # no confirmed number: the rules then block approval
+        finder.logger.warning(json.dumps({"message": "finder failed", "error": type(e).__name__}))
+        return None
+
+
 def check_node(node_input: object, payment_id: str):
     scenario = demo.scenario_for(payment_id)
     originals = demo.originals(scenario)
     grounded = ground(_as_reading(node_input), originals)
     found = lookups.fetch(grounded.instruction, originals, scenario.payment.requested_on)
     result = check(demo.ledger(), scenario.payment, grounded.instruction, found)
+    if result.verify_with is None and scenario.payment.vendor_id is None:
+        found.official_contact = _official(scenario.payment.payee_name, originals, grounded.instruction.sender_address)
+        result = check(demo.ledger(), scenario.payment, grounded.instruction, found)
     return Event(
         state={
             "grounded": grounded.model_dump(mode="json"),
