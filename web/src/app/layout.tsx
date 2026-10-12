@@ -10,8 +10,9 @@ import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-// Ledger names, account holders and the originals are Japanese.
-const notoJp = Noto_Sans_JP({ variable: "--font-noto-jp", subsets: ["latin"], weight: ["400", "500", "700"] });
+// Ledger names, account holders and the originals are Japanese. The variable font is one file per
+// unicode range (about 120); fixed weights would triple the downloads, and any failed one fails the build.
+const notoJp = Noto_Sans_JP({ variable: "--font-noto-jp", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Payment check",

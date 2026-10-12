@@ -3,7 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+# Google Fonts are fetched at build time; retry once if a download fails.
+RUN npm run build || npm run build
 
 FROM node:22-slim
 WORKDIR /app

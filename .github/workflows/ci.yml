@@ -37,7 +37,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      - run: npm run build
+      # Google Fonts are fetched at build time; retry once if a download fails.
+      - run: npm run build || npm run build
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
