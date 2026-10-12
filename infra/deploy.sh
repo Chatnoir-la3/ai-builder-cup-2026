@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build from source and deploy both services to Cloud Run.
 # The agent is private; only the web service account may invoke it.
-# One agent instance: the demo approval queue lives in memory.
+# One agent instance: the approval queue and ledger live in Firestore, guarded by an in-process lock.
 # The web is public via --no-invoker-iam-check, which works under domain-restricted-sharing org policies.
 # Usage: PROJECT_ID=... infra/deploy.sh [agent|web|all]
 set -euo pipefail
@@ -12,7 +12,7 @@ TARGET="${1:-all}"
 if [[ "$TARGET" == agent || "$TARGET" == all ]]; then
   gcloud run deploy "$AGENT_SERVICE" --project="$PROJECT_ID" --region="$REGION" \
     --source="$ROOT/agent" --service-account="$AGENT_SA" --no-allow-unauthenticated --max-instances=1 \
-    --set-env-vars="GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=$MODEL_LOCATION,GEMINI_MODEL=$GEMINI_MODEL,MODEL_ARMOR_TEMPLATE=$MODEL_ARMOR_TEMPLATE,AUDIT_DATASET=$AUDIT_DATASET,AUDIT_LOCATION=$GUARD_LOCATION"
+    --set-env-vars="GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=$MODEL_LOCATION,GEMINI_MODEL=$GEMINI_MODEL,MODEL_ARMOR_TEMPLATE=$MODEL_ARMOR_TEMPLATE,AUDIT_DATASET=$AUDIT_DATASET,AUDIT_LOCATION=$GUARD_LOCATION,FIRESTORE_DATABASE=$FIRESTORE_DATABASE"
   gcloud run services add-iam-policy-binding "$AGENT_SERVICE" --project="$PROJECT_ID" --region="$REGION" \
     --member="serviceAccount:$WEB_SA" --role=roles/run.invoker >/dev/null
 fi

@@ -39,6 +39,12 @@ for role in roles/bigquery.dataEditor roles/bigquery.jobUser; do
     --member="serviceAccount:$AGENT_SA" --role="$role" --condition=None >/dev/null
 done
 
+# State: the approval queue and the ledger it records into, in a Firestore database of their own.
+gcloud firestore databases describe --database="$FIRESTORE_DATABASE" --project="$PROJECT_ID" >/dev/null 2>&1 \
+  || gcloud firestore databases create --database="$FIRESTORE_DATABASE" --location="$REGION" --type=firestore-native --project="$PROJECT_ID"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$AGENT_SA" --role=roles/datastore.user --condition=None >/dev/null
+
 # Lookups: Google Web Risk for links in instructions (uris.search, free up to 100k calls a month).
 gcloud services enable webrisk.googleapis.com --project="$PROJECT_ID"
 
