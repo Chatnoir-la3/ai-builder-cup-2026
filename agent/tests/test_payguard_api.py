@@ -212,3 +212,32 @@ def test_reading_evaluation():
     d = client.get("/demo/eval/reading").json()
     assert d["summary"]["cases"] == 10 and len(d["cases"]) == 10
     assert {f["field"] for f in d["cases"][0]["fields"]} == {"channel", "sender_name", "sender_address", "account_number", "amount"}
+
+
+def test_call_records_the_transfer_the_payee_confirmed(fake_check):
+    client.post("/check", json={"payment_id": "P-1002"})
+    d = call("P-1002", AP, True).json()
+    assert (d["call"]["account_number"], d["call"]["amount"]) == ("8812345", 486000)
+    assert d["history"][-1]["detail"].endswith("confirmed account 8812345, ¥486,000")
+
+
+def test_call_about_a_different_transfer_no_longer_counts(fake_check):
+    client.post("/check", json={"payment_id": "P-1002"})
+    call("P-1002", AP, True)
+    item = store.get("P-1002")
+    item.call.amount = 100000  # as if the transfer had changed since the call
+    store._save("P-1002", item)
+    client.post("/check", json={"payment_id": "P-1002"})
+    assert store.get("P-1002").call is None
+    assert approve("P-1002", CEO).status_code == 409
+
+
+def test_a_decided_payment_keeps_the_check_it_was_decided_on(fake_check):
+    from app.payguard.models import CheckResult, Finding
+
+    client.post("/check", json={"payment_id": "P-1001"})
+    approve("P-1001")
+    before = store.get("P-1001")
+    store.checked("P-1001", CheckResult(findings=[Finding(code="NEW_PAYEE", facts={"payee": "x"})], verify_with=None))
+    after = store.get("P-1001")
+    assert after == before and after.tier == "pass" and after.findings == []
