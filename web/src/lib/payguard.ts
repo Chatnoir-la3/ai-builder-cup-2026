@@ -2,6 +2,7 @@
 
 export type Channel = "email" | "line" | "sms" | "phone" | "in_person" | "edi" | "other";
 export type Status = "pending" | "approved" | "held";
+export type Tier = "pass" | "verify" | "block";
 export type FindingCode =
   | "NEW_PAYEE"
   | "ACCOUNT_NOT_REGISTERED"
@@ -53,7 +54,7 @@ export type PaymentSummary = {
   findings: number | null;
 };
 
-export type HistoryItem = { at: string; event: "received" | "checked" | "approved" | "held"; detail: string };
+export type HistoryItem = { at: string; event: "received" | "checked" | "called" | "approved" | "held"; detail: string };
 
 export type OriginalInfo = { name: string; mime_type: string; text: string | null };
 
@@ -64,6 +65,10 @@ export type PaymentDetail = {
   originals: OriginalInfo[];
   status: Status;
   findings: FindingCode[] | null;
+  tier: Tier | null;
+  verify_with: Contact | null;
+  call: CallLog | null;
+  approvers: string[];
   history: HistoryItem[];
 };
 
@@ -78,6 +83,8 @@ export type Finding = { code: FindingCode; facts: Record<string, string | number
 
 export type Contact = { name: string; phone: string; source: "ledger" | "official" };
 
+export type CallLog = { by: string; at: string; contact: Contact; confirmed: boolean };
+
 export type Notice = { action: string; reasons: { code: FindingCode; text: string }[]; source: "model" | "template" };
 
 export type CheckResponse = {
@@ -85,5 +92,6 @@ export type CheckResponse = {
   reading: { evidence: Evidence[]; unverified: InstructionField[] };
   findings: Finding[];
   verify_with: Contact | null;
+  tier: Tier;
   notice: Notice | null;
 };

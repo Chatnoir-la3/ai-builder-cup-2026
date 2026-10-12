@@ -1,8 +1,11 @@
-"""Approval queue for the demo: status and history per payment, kept in memory.
+"""Approval queue for the demo: status, call log and history per payment, kept in memory.
 
-A flagged payment can be approved only after the approver confirms the callback to the ledger contact.
-That is the company's rule, applied by code; the model never blocks or approves anything.
-Decisions are logged as structured lines with codes only, never the originals.
+The tier from the rules decides what approval needs; code enforces it, the model never approves anything.
+- pass: one person approves.
+- verify: someone calls the number from the check (the ledger's, or the payee's official one) and logs
+  the result; a second person, not the caller, then approves. An unconfirmed call puts it on hold.
+- block: it cannot be approved.
+Decisions are logged as structured lines with codes only, never the originals or names.
 """
 
 import json
@@ -14,7 +17,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from . import demo
-from .models import CHANNEL_NAMES
+from .models import CHANNEL_NAMES, CheckResult, Contact, Tier
 
 JST = timezone(timedelta(hours=9))
 Status = Literal["pending", "approved", "held"]
@@ -25,13 +28,23 @@ logger = logging.getLogger("payguard.approvals")
 
 class HistoryItem(BaseModel):
     at: datetime
-    event: Literal["received", "checked", "approved", "held"]
+    event: Literal["received", "checked", "called", "approved", "held"]
     detail: str = ""
+
+
+class CallLog(BaseModel):
+    by: str
+    at: datetime
+    contact: Contact  # always the contact from the check, never one typed in
+    confirmed: bool
 
 
 class QueueItem(BaseModel):
     status: Status = "pending"
     findings: list[str] | None = None  # codes from the latest check; None until checked
+    tier: Tier | None = None
+    verify_with: Contact | None = None
+    call: CallLog | None = None
     history: list[HistoryItem]
 
 
@@ -39,10 +52,18 @@ class DecisionError(Exception):
     pass
 
 
+def approvers() -> list[str]:
+    return [p.full_name for p in demo.ledger().people]
+
+
 def _received(scenario: demo.Scenario) -> HistoryItem:
     at = datetime.combine(scenario.payment.requested_on, time(9, 0), tzinfo=JST)
     channel = CHANNEL_NAMES[scenario.instruction.channel]
     return HistoryItem(at=at, event="received", detail=f"Payment request with an instruction by {channel}")
+
+
+def _number_from(contact: Contact) -> str:
+    return "the payee's official number" if contact.source == "official" else "the ledger number"
 
 
 class ApprovalStore:
@@ -59,38 +80,85 @@ class ApprovalStore:
         with self._lock:
             return self._items[payment_id].model_copy(deep=True)
 
-    def checked(self, payment_id: str, codes: list[str]) -> None:
+    def checked(self, payment_id: str, result: CheckResult) -> None:
+        codes = [f.code for f in result.findings]
         detail = f"{len(codes)} point(s) differ from the usual pattern" if codes else "Nothing differs from the usual pattern"
+        if result.tier == "block":
+            detail += "; cannot be approved"
         with self._lock:
             item = self._items[payment_id]
-            item.findings = codes
+            if item.call and item.call.contact != result.verify_with:
+                item.call = None  # a call to a different number no longer counts
+            item.findings, item.tier, item.verify_with = codes, result.tier, result.verify_with
             item.history.append(HistoryItem(at=datetime.now(JST), event="checked", detail=detail))
 
-    def decide(self, payment_id: str, decision: Decision, callback_confirmed: bool) -> QueueItem:
+    def log_call(self, payment_id: str, by: str, confirmed: bool) -> QueueItem:
         with self._lock:
             item = self._items[payment_id]
             if item.status != "pending":
                 raise DecisionError("This payment has already been decided.")
-            if decision == "approved":
-                if item.findings is None:
-                    raise DecisionError("Run the check before approving.")
-                if item.findings and not callback_confirmed:
-                    raise DecisionError("Confirm the callback before approving.")
-            item.status = decision
-            detail = "Callback to the ledger contact confirmed" if callback_confirmed else ""
-            item.history.append(HistoryItem(at=datetime.now(JST), event=decision, detail=detail))
-            logger.info(
-                json.dumps(
-                    {
-                        "message": "payment decision",
-                        "payment_id": payment_id,
-                        "decision": decision,
-                        "findings": item.findings,
-                        "callback_confirmed": callback_confirmed,
-                    }
-                )
+            if item.tier != "verify" or item.verify_with is None:
+                raise DecisionError("This payment has no call to log.")
+            if by not in approvers():
+                raise DecisionError("Choose who made the call.")
+            contact = item.verify_with
+            now = datetime.now(JST)
+            item.call = CallLog(by=by, at=now, contact=contact, confirmed=confirmed)
+            result = "confirmed the request" if confirmed else "did not confirm the request"
+            item.history.append(
+                HistoryItem(at=now, event="called", detail=f"{by} called {contact.name} on {_number_from(contact)}: {result}")
             )
+            if not confirmed:
+                item.status = "held"
+                item.history.append(HistoryItem(at=now, event="held", detail="The call did not confirm it; tell your bank"))
+                self._log(payment_id, item, "held")
             return item.model_copy(deep=True)
+
+    def decide(self, payment_id: str, decision: Decision, approver: str | None = None) -> QueueItem:
+        with self._lock:
+            item = self._items[payment_id]
+            if item.status != "pending":
+                raise DecisionError("This payment has already been decided.")
+            detail = ""
+            if decision == "approved":
+                detail = self._approval(item, approver)
+            item.status = decision
+            item.history.append(HistoryItem(at=datetime.now(JST), event=decision, detail=detail))
+            self._log(payment_id, item, decision)
+            return item.model_copy(deep=True)
+
+    @staticmethod
+    def _approval(item: QueueItem, approver: str | None) -> str:
+        if item.findings is None:
+            raise DecisionError("Run the check before approving.")
+        if item.tier == "block":
+            raise DecisionError("This payment cannot be approved under your rules.")
+        if item.tier == "pass":
+            return ""
+        call = item.call
+        if call is None or not call.confirmed:
+            raise DecisionError("Log a confirmed call before approving.")
+        if approver not in approvers():
+            raise DecisionError("Choose the second approver.")
+        if approver == call.by:
+            raise DecisionError("The second approval must be by someone other than the caller.")
+        return f"Second approval by {approver}, after {call.by}'s call to {_number_from(call.contact)}"
+
+    @staticmethod
+    def _log(payment_id: str, item: QueueItem, decision: Decision) -> None:
+        logger.info(
+            json.dumps(
+                {
+                    "message": "payment decision",
+                    "payment_id": payment_id,
+                    "decision": decision,
+                    "tier": item.tier,
+                    "findings": item.findings,
+                    "call_confirmed": item.call.confirmed if item.call else None,
+                    "call_to": item.call.contact.source if item.call else None,
+                }
+            )
+        )
 
 
 store = ApprovalStore()

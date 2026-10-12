@@ -8,7 +8,7 @@ Built for the Google Cloud AI Builder Cup 2026 (BFSI theme).
 
 - **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code grounds that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, lookalike or unregistered sender domains, unusual channels. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
 - **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them and gives the callback number from the ledger; otherwise a fixed template is used.
-- **People decide.** Nothing blocks the payment. The callback contact always comes from the ledger, never from the message. Originals are not stored, and audit rows keep metadata only.
+- **The company's rules decide, and code enforces them.** A routine payment is approved as usual. One that differs needs a call to the number from the ledger (or the payee's official number, never the one in the message), the answer recorded, and a second person to approve. One with no independent number to call cannot be approved. Originals are not stored, and audit rows keep metadata only.
 
 All companies, banks and domains in the demo data are fictional.
 
