@@ -1,15 +1,12 @@
 import os
 
-from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
 from google.adk.plugins.base_plugin import BasePlugin
 
-root_agent = Agent(
-    model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
-    name="root_agent",
-    description="Placeholder agent. Replace once the problem statement is fixed.",
-    instruction="Answer user questions concisely.",
-)
+from .payguard.pipeline import pipeline
+
+# What the ADK server and tooling load: the read → check → explain workflow.
+root_agent = pipeline
 
 
 def redact_content(content: object, event_type: str) -> str:

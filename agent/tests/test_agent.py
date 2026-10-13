@@ -1,9 +1,10 @@
 from app.agent import _plugins, app, root_agent
 
 
-def test_root_agent_is_configured():
-    assert root_agent.name == "root_agent"
-    assert root_agent.model
+def test_root_agent_is_the_workflow():
+    from app.payguard.pipeline import pipeline
+
+    assert root_agent is pipeline
     assert app.root_agent is root_agent
 
 
