@@ -33,7 +33,7 @@
 
     <text x="52" y="287" class="k">Guardrail</text>
     <text x="212" y="287" class="t">Model Armor</text>
-    <text x="552" y="287" class="s">Screens model input for prompt injection</text>
+    <text x="552" y="287" class="s">Screens the reader's and explainer's prompts and responses</text>
 
     <text x="52" y="331" class="k">Threat lists</text>
     <text x="212" y="331" class="t">Web Risk API</text>

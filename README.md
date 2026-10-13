@@ -1,5 +1,7 @@
 # Payment instruction check
 
+**The bank can't see this fraud. The company's ledger can.**
+
 Built for the Google Cloud AI Builder Cup 2026, BFSI theme.
 
 Just before a company approves a bank transfer, this app compares the instruction (an email, a chat screenshot, an invoice) with the company's own records. When nothing differs, it stays quiet. When something differs, it tells the approver what differs and whom to call, and the company's rules decide what must happen before the money can leave.
@@ -81,6 +83,8 @@ The 3 cleared values are the amount written as 48万6千円. Gemini read it as �
 | Genuine payments that need a call | 4 / 10 | 6 / 10 |
 | Genuine payments approved as usual | 4 / 10 | 4 / 10 |
 
+"Stopped" means the payment did not reach a normal approval: it needs a call and a second approver, or it cannot be approved (4 of the 18). The ten genuine payments are hard ones on purpose. A real account change, two new suppliers, an order about twice the past maximum, a request on LINE and a supplier's new email domain all need a call. The other four, such as a regular EDI payment and a holder name the bank prints in half-width kana, pass with nothing shown. How often a real company's payments need a call is not measured here.
+
 The ledger rules alone stop every attack. The lookups matter for genuine new suppliers: without an independent number to call, a real first payment cannot be approved. In the evaluation, the lookup results are given per case, so the outcome depends on the rules alone and can be repeated. All 28 cases give the expected findings and tier, and the tests check this.
 
 ### Known limits
@@ -122,11 +126,12 @@ What is kept:
 - The approval queue in Firestore keeps the findings, the tier, the number to call, who called and approved, and the account and amount the payee confirmed. The ledger keeps the vendor master and payment history.
 - Audit rows in BigQuery keep metadata only, with all content redacted.
 - Decision logs record the tier, the finding codes and the call outcome, not names or account numbers.
+- Model Armor screens the prompts and responses of the reader and the explainer, which run inside the ADK workflow. The finder calls Gemini directly, with the payee's name only, so the plugin does not cover it.
 - Model Armor and the audit plugin turn on only when `MODEL_ARMOR_TEMPLATE` and `AUDIT_DATASET` are set, so local development needs neither.
 
 ## Running it for real
 
-- **Where it sits.** At the approval step: inside the AP workflow of accounting software, or before approval in corporate internet banking. Both call one endpoint, `POST /check`, with the payment and its instruction.
+- **Where it sits.** At the approval step of corporate internet banking, as a check a bank offers its business customers, or inside the AP workflow of accounting software. A bank sees the transfer but not the email that caused it; this check runs where both are in view. In the demo, `POST /check` takes one of the four demo payments. A real integration would send the payment and its instruction.
 - **The ledger.** It comes from the vendor master and payment history the company already keeps, and it grows by rule. An approval adds the payment to the history, and a confirmed call marks the account as verified.
 - **Scale.** The agent is stateless on Cloud Run and scales with requests. A routine payment costs one model call. The ledger and the approval queue are in Firestore.
 - **Data residency.** The default model runs on `global`. If data must stay in the region, switch to `gemini-3.5-flash` in `asia-southeast1` (see below).
