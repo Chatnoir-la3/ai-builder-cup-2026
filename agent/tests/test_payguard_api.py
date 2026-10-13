@@ -55,6 +55,16 @@ def test_detail_includes_text_originals_inline_and_images_by_name():
     assert [h["event"] for h in d["history"]] == ["received"]
 
 
+def test_checks_stop_at_the_hourly_cap(fake_check, monkeypatch):
+    monkeypatch.setattr(api, "CHECKS_PER_HOUR", 2)
+    monkeypatch.setattr(api, "_hour", {"start": None, "count": 0})
+    assert client.post("/check", json={"payment_id": "P-1001"}).status_code == 200
+    assert client.post("/check", json={"payment_id": "P-1002"}).status_code == 200
+    assert client.post("/check", json={"payment_id": "P-1001"}).status_code == 429
+    # An unknown id is turned away before it counts.
+    assert client.post("/check", json={"payment_id": "P-0000"}).status_code == 404
+
+
 def test_unknown_payment_and_original_are_404():
     assert client.get("/demo/payments/P-0000").status_code == 404
     assert client.post("/check", json={"payment_id": "P-0000"}).status_code == 404

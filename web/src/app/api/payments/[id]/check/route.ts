@@ -9,6 +9,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/payments/[i
   try {
     const res = await agentFetch("/check", { method: "POST", body: JSON.stringify({ payment_id: id }) });
     if (res.status === 404) return Response.json({ error: "Unknown payment." }, { status: 404 });
+    if (res.status === 429) {
+      return Response.json({ error: "The demo has reached its hourly limit. Try again later." }, { status: 429 });
+    }
     if (!res.ok) return Response.json({ error: "The check could not run." }, { status: 502 });
     return Response.json(await res.json());
   } catch {

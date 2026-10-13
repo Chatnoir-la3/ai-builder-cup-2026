@@ -1,5 +1,6 @@
 """HTTP endpoints the web calls (through its own server, with an ID token)."""
 
+import time
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Response
@@ -124,9 +125,24 @@ def get_original(name: str) -> Response:
     raise HTTPException(status_code=404, detail="unknown original")
 
 
+# The demo is public and has no login. The agent runs as one instance, so this bounds what model calls can cost.
+CHECKS_PER_HOUR = 120
+_hour = {"start": None, "count": 0}
+
+
+def _within_hourly_cap() -> bool:
+    now = time.monotonic()
+    if _hour["start"] is None or now - _hour["start"] >= 3600:
+        _hour.update(start=now, count=0)
+    _hour["count"] += 1
+    return _hour["count"] <= CHECKS_PER_HOUR
+
+
 @router.post("/check")
 async def check_payment(req: CheckRequest) -> CheckResponse:
     _scenario(req.payment_id)
+    if not _within_hourly_cap():
+        raise HTTPException(status_code=429, detail="hourly check limit reached")
     response = await run_check(req.payment_id)
     store.checked(req.payment_id, CheckResult(findings=response.findings, verify_with=response.verify_with))
     return response

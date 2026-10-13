@@ -1,8 +1,9 @@
 // Fixed-window limit per client IP, per instance. Enough to keep the public demo from running up model calls.
 const windows = new Map<string, { start: number; count: number }>();
 
+// Cloud Run appends the address it saw to X-Forwarded-For; anything before it is whatever the client sent.
 export function clientIp(request: Request): string {
-  return request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
+  return request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || "local";
 }
 
 export function allow(key: string, limit: number, windowMs: number): boolean {
