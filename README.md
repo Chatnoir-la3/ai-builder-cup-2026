@@ -85,6 +85,8 @@ The 3 cleared values are the amount written as 48万6千円. Gemini read it as �
 
 "Stopped" means the payment did not reach a normal approval: it needs a call and a second approver, or it cannot be approved (4 of the 18). The ten genuine payments are hard ones on purpose. A real account change, two new suppliers, an order about twice the past maximum, a request on LINE and a supplier's new email domain all need a call. The other four, such as a regular EDI payment and a holder name the bank prints in half-width kana, pass with nothing shown. How often a real company's payments need a call is not measured here.
 
+We wrote the 28 cases and their expected results ourselves; they are not real payments. 18 / 18 says the rules behave as designed on these cases, not how they fare against attacks we did not think of. Two of the four attacks that cannot be approved (A07, A08) are blocked because the company registry has no such company. That lookup is not connected in the live demo (see Known limits), where the same two payments stop at a call instead.
+
 The ledger rules alone stop every attack. The lookups matter for genuine new suppliers: without an independent number to call, a real first payment cannot be approved. In the evaluation, the lookup results are given per case, so the outcome depends on the rules alone and can be repeated. All 28 cases give the expected findings and tier, and the tests check this.
 
 ### Known limits
@@ -126,7 +128,7 @@ What is kept:
 - The approval queue in Firestore keeps the findings, the tier, the number to call, who called and approved, and the account and amount the payee confirmed. The ledger keeps the vendor master and payment history.
 - Audit rows in BigQuery keep metadata only, with all content redacted.
 - Decision logs record the tier, the finding codes and the call outcome, not names or account numbers.
-- Model Armor screens the prompts and responses of the reader and the explainer, which run inside the ADK workflow. The finder calls Gemini directly, with the payee's name only, so the plugin does not cover it.
+- Model Armor screens the text of the prompts and responses of the reader and the explainer, which run inside the ADK workflow. It does not screen images, so a chat screenshot or an invoice image reaches the reader unscreened. The reader can only return the instruction's fields and their evidence, and code decides from those. The finder calls Gemini directly, with the payee's name only, so the plugin does not cover it.
 - Model Armor and the audit plugin turn on only when `MODEL_ARMOR_TEMPLATE` and `AUDIT_DATASET` are set, so local development needs neither.
 
 ## Running it for real
