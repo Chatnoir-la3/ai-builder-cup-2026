@@ -67,11 +67,13 @@ export function OriginalView({
   originals,
   evidence,
   flagged,
+  flaggedDomains,
   showAll,
 }: {
   originals: OriginalInfo[];
   evidence: Evidence[];
   flagged: Set<InstructionField>;
+  flaggedDomains: string[];
   showAll: boolean;
 }) {
   return (
@@ -85,7 +87,11 @@ export function OriginalView({
               <div className="rounded-md border bg-muted/30 p-3">
                 <HighlightedText
                   text={o.text}
-                  marks={own.map((e) => ({ quote: e.quote, label: FIELD_LABEL[e.field], flagged: flagged.has(e.field) }))}
+                  marks={[
+                    ...own.map((e) => ({ quote: e.quote, label: FIELD_LABEL[e.field], flagged: flagged.has(e.field) })),
+                    // Code reads each email's From line itself, so a flagged domain may have no evidence from the reader.
+                    ...flaggedDomains.map((d) => ({ quote: d, label: FIELD_LABEL.sender_address, flagged: true })),
+                  ]}
                 />
               </div>
             ) : (

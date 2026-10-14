@@ -49,6 +49,25 @@ def test_ceo_chat_urgent_transfer():
     assert channel.facts["channel"] == "LINE"
 
 
+def test_email_that_moved_the_request_to_a_chat_is_checked_too():
+    from app.payguard.models import Lookups
+
+    payment, ins = scenario("ceo-chat-urgent-transfer")
+    seen = Lookups(email_senders=["sato.ichiro.office@freemail.example"])
+    domain = next(f for f in check(LEDGER, payment, ins, seen).findings if f.code == "SENDER_DOMAIN_UNREGISTERED")
+    assert domain.facts == {"domain": "freemail.example", "registered": ", ".join(LEDGER.company_domains)}
+    # Sent from the company's own domain, the same email adds nothing.
+    own = Lookups(email_senders=[f"sato@{LEDGER.company_domains[0]}"])
+    assert {f.code for f in check(LEDGER, payment, ins, own).findings} == {"NEW_PAYEE", "UNUSUAL_CHANNEL"}
+
+
+def test_colleague_forwarding_a_supplier_invoice_is_not_a_sender():
+    from app.payguard.models import Lookups
+
+    forwarded = Lookups(email_senders=[f"suzuki@{LEDGER.company_domains[0]}"])
+    assert check(LEDGER, *scenario("routine-invoice"), forwarded).findings == []
+
+
 def test_amount_above_history():
     payment, ins = scenario("routine-invoice")
     payment = payment.model_copy(update={"amount": 900_000})

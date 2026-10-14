@@ -406,6 +406,8 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
   const result = check.state === "done" ? check.result : null;
   const codes = new Set(result?.findings.map((f) => f.code) ?? []);
   const flaggedFields = new Set<InstructionField>(result?.findings.flatMap((f) => f.fields) ?? []);
+  const flaggedDomains =
+    result?.findings.flatMap((f) => (f.code.startsWith("SENDER_DOMAIN") && typeof f.facts.domain === "string" ? [f.facts.domain] : [])) ?? [];
   const rowFlagged = (row: keyof typeof ROW_CODES) => ROW_CODES[row].some((c) => codes.has(c));
   const call = initial.call;
   // After a call is logged, a later check cannot lower the tier (the agent keeps the earlier one).
@@ -511,6 +513,7 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
                     originals={initial.originals}
                     evidence={result?.reading.evidence ?? []}
                     flagged={flaggedFields}
+                    flaggedDomains={flaggedDomains}
                     showAll={showAll}
                   />
                 </CardContent>

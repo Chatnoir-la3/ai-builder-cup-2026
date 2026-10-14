@@ -62,7 +62,7 @@ def web_risk(monkeypatch):
     [
         ("P-1001", "quiet", []),
         ("P-1002", "explain", ["ACCOUNT_NOT_REGISTERED", "HOLDER_MISMATCH", "SENDER_DOMAIN_LOOKALIKE"]),
-        ("P-1003", "explain", ["NEW_PAYEE", "UNUSUAL_CHANNEL"]),
+        ("P-1003", "explain", ["NEW_PAYEE", "SENDER_DOMAIN_UNREGISTERED", "UNUSUAL_CHANNEL"]),
         ("P-1004", "explain", ["URL_LISTED"]),
     ],
 )
