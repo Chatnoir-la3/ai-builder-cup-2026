@@ -1,5 +1,6 @@
 "use client";
 
+import { TRANSLATION } from "@/lib/demo-english";
 import { FIELD_LABEL } from "@/lib/format";
 import type { Evidence, InstructionField, OriginalInfo } from "@/lib/payguard";
 
@@ -69,12 +70,14 @@ export function OriginalView({
   flagged,
   flaggedDomains,
   showAll,
+  showEnglish,
 }: {
   originals: OriginalInfo[];
   evidence: Evidence[];
   flagged: Set<InstructionField>;
   flaggedDomains: string[];
   showAll: boolean;
+  showEnglish: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -96,6 +99,14 @@ export function OriginalView({
               </div>
             ) : (
               <BoxedImage name={o.name} evidence={own} flagged={flagged} />
+            )}
+            {showEnglish && TRANSLATION[o.name] && (
+              <div className="rounded-md border border-dashed p-3">
+                <p className="pb-2 text-xs text-muted-foreground">
+                  English translation, written by hand for this demo. The check reads the Japanese original.
+                </p>
+                <pre className="font-sans text-sm leading-relaxed whitespace-pre-wrap">{TRANSLATION[o.name]}</pre>
+              </div>
             )}
           </figure>
         );
