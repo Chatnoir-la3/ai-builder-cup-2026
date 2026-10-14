@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ABOUT, PAYEE_EN } from "@/lib/demo-english";
 import { CHANNEL_LABEL, STATUS_CLASS, STATUS_LABEL, formatDay, formatYen } from "@/lib/format";
 import type { PaymentSummary, Status } from "@/lib/payguard";
 
@@ -35,7 +36,7 @@ export function ApprovalTable({ rows }: { rows: PaymentSummary[] }) {
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter(
-      (r) => (status === "all" || r.status === status) && (!q || `${r.id} ${r.payee_name}`.toLowerCase().includes(q)),
+      (r) => (status === "all" || r.status === status) && (!q || `${r.id} ${r.payee_name} ${PAYEE_EN[r.payee_name] ?? ""}`.toLowerCase().includes(q)),
     );
   }, [rows, query, status]);
 
@@ -84,6 +85,7 @@ export function ApprovalTable({ rows }: { rows: PaymentSummary[] }) {
             <TableRow>
               <TableHead className="w-[90px]">ID</TableHead>
               <TableHead>Payee</TableHead>
+              <TableHead>What arrived</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Requested</TableHead>
               <TableHead>Instruction</TableHead>
@@ -94,7 +96,7 @@ export function ApprovalTable({ rows }: { rows: PaymentSummary[] }) {
           <TableBody>
             {shown.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No payments match. Clear the search or choose another status.
                 </TableCell>
               </TableRow>
@@ -108,7 +110,11 @@ export function ApprovalTable({ rows }: { rows: PaymentSummary[] }) {
                   tabIndex={0}
                 >
                   <TableCell className="font-mono text-xs">{r.id}</TableCell>
-                  <TableCell className="font-medium">{r.payee_name}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{r.payee_name}</div>
+                    {PAYEE_EN[r.payee_name] && <div className="text-xs text-muted-foreground">{PAYEE_EN[r.payee_name]}</div>}
+                  </TableCell>
+                  <TableCell className="max-w-[280px] text-sm whitespace-normal text-muted-foreground">{ABOUT[r.id]}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatYen(r.amount)}</TableCell>
                   <TableCell>{formatDay(r.requested_on)}</TableCell>
                   <TableCell>{CHANNEL_LABEL[r.channel]}</TableCell>

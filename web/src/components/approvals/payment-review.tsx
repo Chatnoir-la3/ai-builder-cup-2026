@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PAYEE_EN } from "@/lib/demo-english";
 import {
   ACCOUNT_TYPE_LABEL,
   CHANNEL_LABEL,
@@ -348,6 +349,7 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
   const [check, setCheck] = useState<CheckState>(status === "pending" ? { state: "running" } : { state: "skipped" });
   const [actingAs, setActingAs] = useState(initialActingAs ?? "");
   const [showAll, setShowAll] = useState(false);
+  const [showEnglish, setShowEnglish] = useState(true);
   const [deciding, setDeciding] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const started = useRef(false);
@@ -427,6 +429,7 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
             <Badge className={STATUS_CLASS[status]}>{STATUS_LABEL[status]}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
+            {PAYEE_EN[payment.payee_name] && `${PAYEE_EN[payment.payee_name]} · `}
             {formatYen(payment.amount)} · requested {formatDay(payment.requested_on)} · instruction by{" "}
             {CHANNEL_LABEL[initial.channel]}
           </p>
@@ -507,6 +510,10 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
                       Show everything Gemini read
                     </label>
                   )}
+                  <label className="flex cursor-pointer items-center gap-2 pt-1 text-sm">
+                    <Checkbox checked={showEnglish} onCheckedChange={(v) => setShowEnglish(v === true)} />
+                    Show English translation
+                  </label>
                 </CardHeader>
                 <CardContent>
                   <OriginalView
@@ -515,6 +522,7 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
                     flagged={flaggedFields}
                     flaggedDomains={flaggedDomains}
                     showAll={showAll}
+                    showEnglish={showEnglish}
                   />
                 </CardContent>
               </Card>
