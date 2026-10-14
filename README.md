@@ -14,7 +14,7 @@ Just before a company approves a bank transfer, this app compares the instructio
 
 Payment fraud against companies rarely breaks into a bank account. It persuades an employee to send a transfer that the bank sees as normal: the right person, logged in, approving it.
 
-- 79% of organizations were targets of attempted or actual payments fraud in 2024, and business email compromise was the most common avenue (63%). Only 22% recovered three quarters or more of the money. ([AFP Payments Fraud and Control Survey 2025](https://www.financialprofessionals.org/about/learn-more/press-releases/Details/survey-79-percent-of-organizations-were-victims-of-attempted-or-actual-payments-fraud-activity-in-2024))
+- 79% of organizations were victims of attempted or actual payments fraud in 2024, and business email compromise was the most common avenue (63%). Only 22% recovered three quarters or more of the money. ([AFP Payments Fraud and Control Survey 2025](https://www.financialprofessionals.org/about/learn-more/press-releases/Details/survey-79-percent-of-organizations-were-victims-of-attempted-or-actual-payments-fraud-activity-in-2024))
 - In Australia, payment redirection scams, in which a fraudster poses as a supplier and changes the account, cost A$166.8M in 2025. ([National Anti-Scam Centre, Targeting Scams Report 2025](https://www.nasc.gov.au/system/files/targeting-scams-report-2025.pdf))
 - In Japan, the Tokyo Metropolitan Police warned in January 2026 of emails that pose as the CEO, ask staff to set up a LINE group, and then ask for a transfer right away. There are no official counts. ([INTERNET Watch](https://internet.watch.impress.co.jp/docs/news/2082376.html))
 
@@ -28,7 +28,7 @@ Open the [live demo](https://web-188931464687.asia-southeast1.run.app). The appr
 |---|---|---|
 | P-1001 | A monthly invoice from a regular supplier | **Pass.** Nothing is shown; approve as usual. |
 | P-1002 | The supplier says its account is frozen during a tax audit and gives a new one | **Verify.** The screen marks the account, the holder name and the look-alike domain, and gives the ledger's phone number. |
-| P-1003 | The CEO, by email, moves the conversation to LINE and asks for an urgent transfer | **Verify.** The first email came from a free mail address, not the company's domain. Call the CEO on the number in the ledger. |
+| P-1003 | The CEO, by email, moves the conversation to LINE and asks for an urgent transfer | **Verify.** The first email came from outside the company's domain. Call the CEO on the number in the ledger. |
 | P-1004 | A regular invoice whose portal link Google Web Risk lists as phishing | **Block.** Approve is disabled. |
 
 For a Verify payment, choose who you are, call, and record whether the payee confirmed the account and amount. The second approval must come from someone else in a different browser: open the payment in a private window, choose another person, and approve there. Approve stays disabled until the call is confirmed, and the agent refuses a second approval from the caller's browser session. An approved payment is added to the ledger's history, and a confirmed account counts as known from then on.
@@ -133,9 +133,9 @@ What is kept:
 
 ## Running it for real
 
-- **Where it sits.** At the approval step of corporate internet banking, as a check a bank offers its business customers, or inside the AP workflow of accounting software. A bank sees the transfer but not the email that caused it; this check runs where both are in view. In the demo, `POST /check` takes one of the four demo payments. A real integration would send the payment and its instruction.
+- **Where it sits.** At the company's approval step, where the transfer and the email that caused it are both in view: the AP workflow of accounting software, or the approval screen of corporate internet banking. It reads the company's own records, not the bank's. A bank can offer it to business customers on that approval screen; the bank's own fraud screening still sees only the transfer. In the demo, `POST /check` takes one of the four demo payments. A real integration would send the payment and its instruction.
 - **The ledger.** It comes from the vendor master and payment history the company already keeps, and it grows by rule. An approval adds the payment to the history, and a confirmed call marks the account as verified.
-- **Scale.** The agent is stateless on Cloud Run and scales with requests. A routine payment costs one model call. The ledger and the approval queue are in Firestore.
+- **Scale.** The demo runs one agent instance on purpose. The ledger and the approval queue are in Firestore, but writes are ordered by a lock inside the process, and the hourly check limit is counted in memory. Running more instances needs Firestore transactions in their place, and per-company tenants. A routine payment costs one model call.
 - **Data residency.** The default model runs on `global`. If data must stay in the region, switch to `gemini-3.5-flash` in `asia-southeast1` (see below).
 - **What the demo leaves out.** Sign-in and per-company tenants, the company registry lookup, and integration with a real accounting system or bank.
 
