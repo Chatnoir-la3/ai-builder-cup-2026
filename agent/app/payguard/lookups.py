@@ -3,6 +3,9 @@
 - Links in the instruction, against Google Web Risk (`uris.search`). Every link is checked; an
   instruction with more than MAX_LINKS links counts as a failed lookup rather than checking only some.
 - The age of the sender's email domain, from its RDAP registration event.
+- The From address of each email among the originals, read from its header. A request made in a chat
+  often starts with an email that moves the conversation there; the reader reports the chat's sender,
+  so the rules get the email's sender from here.
 
 No model is involved. A lookup with nothing to say stays unknown, and the rules then say nothing about
 it. A lookup that fails is recorded in `failed`: Web Risk can block a payment, so its failure is a finding;
@@ -32,6 +35,7 @@ RDAP = "https://rdap.org/domain/{}"
 RESERVED = (".example", ".test", ".invalid", ".localhost")
 
 _LINK = re.compile(r"https?://[^\s<>\"'()（）「」、。]+")
+_ADDRESS = re.compile(r"[^\s<>\"',;:]+@[^\s<>\"',;:]+")
 
 logger = logging.getLogger("payguard.lookups")
 
@@ -44,6 +48,19 @@ def links(originals: list[Original]) -> list[str]:
                 url = url.rstrip(".,;:")
                 if url not in found:
                     found.append(url)
+    return found
+
+
+def senders(originals: list[Original]) -> list[str]:
+    found: list[str] = []
+    for o in originals:
+        if not o.is_text:
+            continue
+        header = re.split(r"\r?\n\r?\n", o.text, maxsplit=1)[0]
+        for line in header.splitlines():
+            match = _ADDRESS.search(line) if line.lower().startswith("from:") else None
+            if match and match.group().lower() not in found:
+                found.append(match.group().lower())
     return found
 
 
@@ -111,6 +128,7 @@ def fetch(ins: Instruction, originals: list[Original], today: date) -> Lookups:
         listed_urls, registered = urls.result(), reg.result()
     return Lookups(
         listed_urls=listed_urls,
+        email_senders=senders(originals),
         domain_age_days=(today - registered).days if isinstance(registered, date) else None,
         failed=sorted(failed),
     )

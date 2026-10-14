@@ -159,25 +159,37 @@ def _amount_findings(ledger: Ledger, payment: Payment, vendor: Vendor | None) ->
     ]
 
 
-def _domain_findings(ledger: Ledger, ins: Instruction, expected: list[str]) -> list[Finding]:
-    domain = _email_domain(ins.sender_address)
-    if ins.channel != "email" or domain is None:
-        return []
+def _sender_domains(ledger: Ledger, ins: Instruction, email_senders: Sequence[str]) -> list[str]:
+    """The instruction's own sender if it came by email, then every other email among the originals.
+
+    A request made in a chat often starts with an email that moves the conversation there. The company's
+    own domain is skipped for those other emails: a colleague forwarding a supplier's invoice is not a sender.
+    """
+    own = _email_domain(ins.sender_address) if ins.channel == "email" else None
+    others = [d for d in map(_email_domain, email_senders) if d and d not in ledger.company_domains]
+    return list(dict.fromkeys(d for d in [own, *others] if d))
+
+
+def _domain_findings(ledger: Ledger, ins: Instruction, expected: list[str], email_senders: Sequence[str] = ()) -> list[Finding]:
     known = set(ledger.company_domains) | {d for v in ledger.vendors for d in v.email_domains}
-    if domain in known and (not expected or domain in expected):
-        return []
-    similar = next((k for k in sorted(known) if looks_like(domain, k)), None)
-    if similar:
-        return [Finding(code="SENDER_DOMAIN_LOOKALIKE", facts={"domain": domain, "looks_like": similar}, fields=["sender_address"])]
-    if expected:
-        return [
-            Finding(
-                code="SENDER_DOMAIN_UNREGISTERED",
-                facts={"domain": domain, "registered": ", ".join(expected)},
-                fields=["sender_address"],
+    findings: list[Finding] = []
+    for domain in _sender_domains(ledger, ins, email_senders):
+        if domain in known and (not expected or domain in expected):
+            continue
+        similar = next((k for k in sorted(known) if looks_like(domain, k)), None)
+        if similar:
+            findings.append(
+                Finding(code="SENDER_DOMAIN_LOOKALIKE", facts={"domain": domain, "looks_like": similar}, fields=["sender_address"])
             )
-        ]
-    return []
+        elif expected:
+            findings.append(
+                Finding(
+                    code="SENDER_DOMAIN_UNREGISTERED",
+                    facts={"domain": domain, "registered": ", ".join(expected)},
+                    fields=["sender_address"],
+                )
+            )
+    return findings
 
 
 def _channel_findings(ins: Instruction, who: str, usual: list[str]) -> list[Finding]:
@@ -252,15 +264,15 @@ def check(
 
     verify_with: Contact | None = None
     if person is not None:
-        findings += _domain_findings(ledger, ins, ledger.company_domains)
+        findings += _domain_findings(ledger, ins, ledger.company_domains, lookups.email_senders)
         findings += _channel_findings(ins, f"{person.full_name} ({person.role})", list(person.usual_channels))
         verify_with = person.contact
     elif vendor is not None:
-        findings += _domain_findings(ledger, ins, vendor.email_domains)
+        findings += _domain_findings(ledger, ins, vendor.email_domains, lookups.email_senders)
         findings += _channel_findings(ins, vendor.name, list(vendor.usual_channels))
         verify_with = vendor.contact
     else:
-        findings += _domain_findings(ledger, ins, [])
+        findings += _domain_findings(ledger, ins, [], lookups.email_senders)
         if lookups.official_contact is not None:
             verify_with = lookups.official_contact.model_copy(update={"source": "official"})
 

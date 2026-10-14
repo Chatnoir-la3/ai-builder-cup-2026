@@ -98,6 +98,7 @@ class Lookups(BaseModel):
     except that a Web Risk lookup that failed is a finding of its own."""
 
     listed_urls: list[str] = Field(default_factory=list, description="Links in the instruction that Web Risk lists")
+    email_senders: list[str] = Field(default_factory=list, description="From address of each email among the originals, read from its header by code")
     domain_age_days: int | None = Field(default=None, description="Age of the sender's email domain")
     company_found: bool | None = Field(default=None, description="Whether a new payee is in the company registry")
     company_age_days: int | None = None

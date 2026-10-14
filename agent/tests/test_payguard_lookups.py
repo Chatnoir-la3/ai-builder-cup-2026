@@ -45,6 +45,17 @@ def test_links_come_from_text_originals_only():
     assert found == ["https://portal.shigino-bussan.example/inv?id=7", "http://a.example/x"]
 
 
+def test_senders_come_from_the_header_of_each_email():
+    found = lookups.senders(
+        [
+            text("From: 佐藤 一郎 <Sato.Ichiro@freemail.example>\nTo: suzuki@miori-koumuten.example\n\nFrom: not-a-header@body.example"),
+            text("To: a@b.example\nFrom: billing@utou-shoji.example\n\n請求書を送ります。"),
+            Original(name="chat.png", mime_type="image/png", data=b"From: in-an-image@c.example"),
+        ]
+    )
+    assert found == ["sato.ichiro@freemail.example", "billing@utou-shoji.example"]
+
+
 def test_web_risk_reports_listed_links_and_skips_reserved_names():
     session = FakeSession({"http://bad.test-phish.net/login": ["SOCIAL_ENGINEERING"]})
     urls = ["http://bad.test-phish.net/login", "https://ok.example.org/", "https://invoice.example/x"]
