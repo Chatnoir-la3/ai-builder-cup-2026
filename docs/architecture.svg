@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="610" viewBox="0 0 1040 610" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="690" viewBox="0 0 1040 690" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title>Architecture</title>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -13,9 +13,9 @@
     .l { font-size: 12px; fill: #52525b; }
     .line { stroke: #a1a1aa; stroke-width: 1.5; fill: none; }
   </style>
-  <rect width="1040" height="610" fill="#fafafa"/>
+  <rect width="1040" height="690" fill="#fafafa"/>
   <text x="32" y="44" class="h">Architecture</text>
-  <text x="32" y="66" class="m">Each stage and the service it calls. Gemini reads, finds and writes. Code decides.</text>
+  <text x="32" y="66" class="m">Each stage and the service it calls. Gemini reads, finds, writes and calls. Code decides.</text>
 
   <!-- browser and web -->
   <rect x="32" y="100" width="196" height="60" rx="8" fill="#fff" stroke="#d4d4d8"/>
@@ -31,9 +31,9 @@
   <text x="255" y="242" class="l" text-anchor="middle">ID token</text>
 
   <!-- agent -->
-  <rect x="286" y="100" width="356" height="392" rx="10" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
+  <rect x="286" y="100" width="356" height="472" rx="10" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
   <text x="304" y="128" class="t">agent</text>
-  <text x="354" y="128" class="s">ADK 2.10 Workflow on Cloud Run. Private.</text>
+  <text x="354" y="128" class="s">ADK 2.10 on Cloud Run. Private.</text>
 
   <rect x="302" y="146" width="324" height="62" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
   <text x="318" y="172" class="t" fill="#1d4ed8">1  Reader · Gemini</text>
@@ -51,7 +51,11 @@
   <text x="318" y="412" class="t" fill="#1d4ed8">3  Explainer · Gemini</text>
   <text x="318" y="432" class="s">Only when something differs; sees the findings only</text>
 
-  <text x="302" y="474" class="l">Routine payments stop after the rules: one model call.</text>
+  <rect x="302" y="466" width="324" height="62" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="318" y="492" class="t" fill="#1d4ed8">4  Call · Gemini Live</text>
+  <text x="318" y="512" class="s">Verify only: payee states account; code compares</text>
+
+  <text x="302" y="554" class="l">Routine payments stop after the rules: one model call.</text>
 
   <!-- 1 reader: Model Armor, then Gemini -->
   <line x1="626" y1="177" x2="664" y2="177" class="line" marker-end="url(#a)"/>
@@ -87,22 +91,28 @@
   <text x="856" y="412" class="t">Gemini 3.8 Flash</text>
   <text x="856" y="432" class="s">Vertex AI</text>
 
+  <!-- 4 call: ADK run_live on Gemini Live -->
+  <line x1="626" y1="497" x2="664" y2="497" class="line" marker-end="url(#a)"/>
+  <rect x="668" y="466" width="340" height="62" rx="8" fill="#fff" stroke="#d4d4d8"/>
+  <text x="682" y="492" class="t">Gemini 3.8 Live · us-central1</text>
+  <text x="682" y="512" class="s">ADK run_live. Never given the account or the amount</text>
+
   <!-- stores -->
-  <path d="M642 479H664" class="line" marker-end="url(#a)"/>
-  <rect x="668" y="466" width="166" height="52" rx="8" fill="#fff" stroke="#d4d4d8"/>
-  <text x="682" y="488" class="t">Firestore</text>
-  <text x="682" y="506" class="s">Ledger, queue, calls</text>
-  <rect x="842" y="466" width="166" height="52" rx="8" fill="#fff" stroke="#d4d4d8"/>
-  <text x="856" y="488" class="t">BigQuery</text>
-  <text x="856" y="506" class="s">Audit, metadata only</text>
+  <path d="M642 559H664" class="line" marker-end="url(#a)"/>
+  <rect x="668" y="546" width="166" height="52" rx="8" fill="#fff" stroke="#d4d4d8"/>
+  <text x="682" y="568" class="t">Firestore</text>
+  <text x="682" y="586" class="s">Ledger, queue, calls</text>
+  <rect x="842" y="546" width="166" height="52" rx="8" fill="#fff" stroke="#d4d4d8"/>
+  <text x="856" y="568" class="t">BigQuery</text>
+  <text x="856" y="586" class="s">Audit, metadata only</text>
 
   <!-- deploy -->
-  <rect x="32" y="540" width="976" height="44" rx="8" fill="#f4f4f5" stroke="#e4e4e7"/>
-  <text x="48" y="567" class="s"><tspan font-weight="600" fill="#18181b">Deploy</tspan>   GitHub Actions → Workload Identity Federation (no keys) → Cloud Build → Cloud Run, Firestore and BigQuery in asia-southeast1</text>
+  <rect x="32" y="620" width="976" height="44" rx="8" fill="#f4f4f5" stroke="#e4e4e7"/>
+  <text x="48" y="647" class="s"><tspan font-weight="600" fill="#18181b">Deploy</tspan>   GitHub Actions → Workload Identity Federation (no keys) → Cloud Build → Cloud Run, Firestore and BigQuery in asia-southeast1</text>
 
   <!-- legend -->
   <rect x="32" y="330" width="14" height="14" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
-  <text x="54" y="342" class="l">Gemini: reads, finds, writes</text>
+  <text x="54" y="342" class="l">Gemini: reads, finds, writes, calls</text>
   <rect x="32" y="356" width="14" height="14" rx="3" fill="#f4f4f5" stroke="#18181b"/>
   <text x="54" y="368" class="l">Code: decides</text>
   <rect x="32" y="382" width="14" height="14" rx="3" fill="#fff" stroke="#d4d4d8"/>

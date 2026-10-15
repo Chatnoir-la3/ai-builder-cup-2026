@@ -18,15 +18,13 @@ import re
 import sys
 import time
 import unicodedata
-from contextlib import AsyncExitStack
 from datetime import date
 from functools import cache
 
-from google.genai import types
 from pydantic import BaseModel, TypeAdapter
 
 from . import DATA_DIR, demo
-from .call import ANSWERED, LIVE_MODEL, REPLY_TIMEOUT, Call, brief, live_config, live_connect
+from .call import LIVE_MODEL, REPLY_TIMEOUT, Call, live_connect
 from .rules import check
 from .verify import Outcome, Statement, Turn, compare
 
@@ -204,17 +202,17 @@ async def _place(c: CallCase) -> Run:
     scenario = demo.scenario_for(c.payment_of)
     contact = check(demo.ledger(), scenario.payment, scenario.instruction).verify_with
     start = time.monotonic()
-    async with AsyncExitStack() as stack:
-        session = await stack.enter_async_context(live_connect(live_config(brief(scenario.payment, contact))))
-        call = Call(c.id, session, stack)
-        await session.send_client_content(turns=types.Content(role="user", parts=[types.Part(text=ANSWERED)]), turn_complete=True)
+    call = Call(c.id, scenario.payment, contact, live_connect)
+    try:
+        await call.start()
         await _listen(call)
         for line in c.lines:
             if call.statement is not None:
                 break
-            call.transcript.append(Turn(speaker="payee", text=line))
-            await session.send_client_content(turns=types.Content(role="user", parts=[types.Part(text=line)]), turn_complete=True)
+            call.say(line)
             await _listen(call)
+    finally:
+        await call.close()
     return Run(statement=call.statement, transcript=call.transcript, seconds=round(time.monotonic() - start, 1))
 
 

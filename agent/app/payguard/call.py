@@ -1,27 +1,40 @@
-"""The verification call: Gemini Live phones the number from the check and asks the payee to state the transfer.
+"""The verification call: an ADK agent on Gemini Live phones the number from the check and asks the payee to
+state the transfer.
 
 The agent is told whom it is calling and why, never the account or the amount being sent. It records what
 the payee states with `record_answer`; code compares that with the transfer (`verify.compare`) and the
 approval queue logs the outcome. The model decides nothing: a call it cannot finish confirms nothing.
 
 In the demo the "phone" is the browser: the person playing the payee holds a button to talk, and each turn
-is one request whose response streams the agent's voice as it is spoken. The Live session stays open on the
-agent between turns, so the payee's words go from the browser to the agent and to Gemini, and the result
-never comes from the browser. One call runs at a time; a call left idle is closed.
+is one request whose response streams the agent's voice as it is spoken. The agent runs on ADK's
+`Runner.run_live`, which stays open between turns, so the payee's words go from the browser to the agent and
+to Gemini, and the result never comes from the browser. One call runs at a time; a call left idle is closed.
 """
 
 import asyncio
 import base64
+import contextlib
 import logging
 import os
 import time
 from collections.abc import AsyncIterator, Callable
-from contextlib import AbstractAsyncContextManager, AsyncExitStack
-from typing import Literal
+from contextlib import AbstractAsyncContextManager
+from types import SimpleNamespace
+from typing import Any, Literal
 
 from google import genai
+from google.adk.agents import LlmAgent
+from google.adk.agents.live_request_queue import LiveRequestQueue
+from google.adk.agents.run_config import RunConfig, StreamingMode
+from google.adk.events import Event as AdkEvent
+from google.adk.models import Gemini
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.tools.base_tool import BaseTool
+from google.adk.tools.tool_context import ToolContext
+from google.adk.utils.variant_utils import GoogleLLMVariant
 from google.genai import types
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from . import demo, ledger
 from .approvals import AGENT, DecisionError, store
@@ -38,6 +51,7 @@ REPLY_TIMEOUT = 30
 FOLLOW_UP_TIMEOUT = 8  # after record_answer, how long to wait for the agent to say goodbye
 MAX_AUDIO_BYTES = 30 * 16_000 * 2  # 30 s of 16 kHz 16-bit mono
 RECORD = "record_answer"
+APP_NAME = "payguard_call"
 ANSWERED = "(The call is answered.)"  # tells the agent to start speaking
 # How the agent says the demo's names in English; the ledger keeps them in Japanese.
 NAMES_EN = {
@@ -130,11 +144,10 @@ def brief(payment: Payment, contact: Contact) -> str:
     )
 
 
-def live_config(instruction: str) -> types.LiveConnectConfig:
-    return types.LiveConnectConfig(
+def run_config() -> RunConfig:
+    return RunConfig(
+        streaming_mode=StreamingMode.BIDI,
         response_modalities=[types.Modality.AUDIO],
-        system_instruction=instruction,
-        tools=[types.Tool(function_declarations=[RECORD_ANSWER])],
         input_audio_transcription=types.AudioTranscriptionConfig(),
         output_audio_transcription=types.AudioTranscriptionConfig(),
         speech_config=types.SpeechConfig(language_code=LANGUAGE),
@@ -153,21 +166,109 @@ def live_connect(config: types.LiveConnectConfig) -> AbstractAsyncContextManager
     return client.aio.live.connect(model=LIVE_MODEL, config=config)
 
 
+class LiveGemini(Gemini):
+    """ADK's Gemini, connecting through `transport`: Live runs in `LIVE_LOCATION`, not the reader's location."""
+
+    transport: Any = Field(default=None, exclude=True)
+
+    @property
+    def _live_api_client(self) -> Any:
+        connect = self.transport
+        return SimpleNamespace(aio=SimpleNamespace(live=SimpleNamespace(connect=lambda model, config: connect(config))))
+
+    @property
+    def _api_backend(self) -> GoogleLLMVariant:
+        return GoogleLLMVariant.VERTEX_AI
+
+
+class RecordAnswer(BaseTool):
+    """The agent's one tool: it records what the payee stated, and code compares it later."""
+
+    def __init__(self, call: "Call") -> None:
+        super().__init__(name=RECORD, description=RECORD_ANSWER.description or "")
+        self.call = call
+
+    def _get_declaration(self) -> types.FunctionDeclaration:
+        return RECORD_ANSWER
+
+    async def run_async(self, *, args: dict[str, Any], tool_context: ToolContext) -> dict[str, bool]:
+        if self.call.statement is None:
+            try:
+                self.call.statement = Statement.model_validate(args or {})
+            except ValidationError:
+                self.call.statement = Statement()  # an answer code cannot read confirms nothing
+        return {"recorded": True}
+
+
 class Call:
-    def __init__(self, payment_id: str, session, stack: AsyncExitStack) -> None:
+    """One call: an ADK agent on `Runner.run_live`, fed by a `LiveRequestQueue`.
+
+    The run lasts the whole call, across the payee's HTTP turns, so a task moves its events into a queue and
+    each turn reads that queue up to the agent's turn_complete.
+    """
+
+    def __init__(self, payment_id: str, payment: Payment, contact: Contact, connect: Connect) -> None:
         self.payment_id = payment_id
-        self.session = session
-        self.stack = stack
         self.transcript: list[Turn] = []
         self.statement: Statement | None = None
         self.turns = 0
         self.last = time.monotonic()
+        instruction = brief(payment, contact)
+        self.agent = LlmAgent(
+            name="verification_call",
+            model=LiveGemini(model=LIVE_MODEL, transport=connect),
+            instruction=lambda _ctx: instruction,  # a provider, so the brief is not read as a template
+            tools=[RecordAnswer(self)],
+        )
+        self.sessions = InMemorySessionService()
+        self.runner = Runner(app_name=APP_NAME, agent=self.agent, session_service=self.sessions)
+        self.requests = LiveRequestQueue()
+        self.events: asyncio.Queue[AdkEvent | BaseException] = asyncio.Queue()
+        self.task: asyncio.Task | None = None
+        self.head: AdkEvent | None = None
+
+    async def start(self) -> None:
+        """Connect and have the call answered; fails here, before anything streams, if Live cannot be reached."""
+        session = await self.sessions.create_session(app_name=APP_NAME, user_id=self.payment_id)
+        self.task = asyncio.create_task(self._pump(session.id))
+        self.say(ANSWERED, log=False)
+        async with asyncio.timeout(REPLY_TIMEOUT):
+            self.head = await self._next()
+
+    async def _pump(self, session_id: str) -> None:
+        try:
+            async for event in self.runner.run_live(
+                user_id=self.payment_id, session_id=session_id, live_request_queue=self.requests, run_config=run_config()
+            ):
+                await self.events.put(event)
+        except Exception as e:
+            await self.events.put(e)
+        else:
+            await self.events.put(CallError("The call ended."))
+
+    async def _next(self) -> AdkEvent:
+        if self.head is not None:
+            event, self.head = self.head, None
+            return event
+        event = await self.events.get()
+        if isinstance(event, BaseException):
+            raise event
+        if event.error_code:
+            raise CallError(event.error_code)
+        return event
+
+    def say(self, text: str, log: bool = True) -> None:
+        self.requests.send_content(types.Content(role="user", parts=[types.Part(text=text)]))
+        if log:
+            self.transcript.append(Turn(speaker="payee", text=text))
+
+    def speak(self, audio: bytes) -> None:
+        self.requests.send_activity_start()
+        self.requests.send_realtime(types.Blob(data=audio, mime_type="audio/pcm;rate=16000"))
+        self.requests.send_activity_end()
 
     async def listen(self) -> AsyncIterator[Event]:
-        """Stream the agent's reply, answering `record_answer` on the way.
-
-        The turn that carries the tool call ends there; what the agent says next comes in a turn of its own.
-        """
+        """Stream the agent's reply. The turn that records the answer ends there; the goodbye comes next."""
         heard: list[str] = []
         said: list[str] = []
         recorded = self.statement is not None
@@ -187,30 +288,28 @@ class Call:
         self.last = time.monotonic()
 
     async def _turn(self, heard: list[str], said: list[str]) -> AsyncIterator[Event]:
-        async for msg in self.session.receive():
-            sc = msg.server_content
-            if sc is not None:
-                if sc.input_transcription and sc.input_transcription.text:
-                    heard.append(sc.input_transcription.text)
-                    yield Event(type="heard", text=sc.input_transcription.text)
-                if sc.output_transcription and sc.output_transcription.text:
-                    said.append(sc.output_transcription.text)
-                    yield Event(type="said", text=sc.output_transcription.text)
-                for part in sc.model_turn.parts if sc.model_turn and sc.model_turn.parts else []:
-                    if part.inline_data and part.inline_data.data:
-                        yield Event(type="audio", data=base64.b64encode(part.inline_data.data).decode())
-            if msg.tool_call is not None:
-                for fc in msg.tool_call.function_calls or []:
-                    if fc.name == RECORD and self.statement is None:
-                        try:
-                            self.statement = Statement.model_validate(fc.args or {})
-                        except ValidationError:
-                            self.statement = Statement()  # an answer code cannot read confirms nothing
-                    await self.session.send_tool_response(
-                        function_responses=[types.FunctionResponse(id=fc.id, name=fc.name, response={"recorded": True})]
-                    )
-            if sc is not None and sc.turn_complete:
+        # Transcripts arrive as pieces, then once more whole (finished); the whole one is used only if no pieces came.
+        pieces = {"heard": False, "said": False}
+        while True:
+            event = await self._next()
+            for kind, piece, into in (("heard", event.input_transcription, heard), ("said", event.output_transcription, said)):
+                if piece is None or not piece.text or (piece.finished and pieces[kind]):
+                    continue
+                pieces[kind] = pieces[kind] or not piece.finished
+                into.append(piece.text)
+                yield Event(type=kind, text=piece.text)
+            for part in event.content.parts if event.content and event.content.parts else []:
+                if part.inline_data and part.inline_data.data:
+                    yield Event(type="audio", data=base64.b64encode(part.inline_data.data).decode())
+            if event.turn_complete:
                 return
+
+    async def close(self) -> None:
+        self.requests.close()
+        if self.task is not None:
+            self.task.cancel()
+            with contextlib.suppress(BaseException):
+                await self.task
 
 
 class Calls:
@@ -242,18 +341,14 @@ class Calls:
         item = store.get(payment_id)
         if item.status != "pending" or item.tier != "verify" or item.verify_with is None:
             raise CallError("This payment has no call to make.")
-        payment = demo.scenario_for(payment_id).payment
-        stack = AsyncExitStack()
+        call = Call(payment_id, demo.scenario_for(payment_id).payment, item.verify_with, self._connect)
         try:
-            session = await stack.enter_async_context(self._connect(live_config(brief(payment, item.verify_with))))
-            await session.send_client_content(
-                turns=types.Content(role="user", parts=[types.Part(text=ANSWERED)]), turn_complete=True
-            )
+            await call.start()
         except Exception as e:
             logger.warning("verification call could not connect: %s", type(e).__name__)
-            await stack.aclose()
+            await call.close()
             raise CallError("The call could not be placed. Call the number yourself.") from None
-        self._call = Call(payment_id, session, stack)
+        self._call = call
 
     async def send(self, payment_id: str, audio: bytes | None = None, text: str | None = None) -> None:
         await self._expire()
@@ -262,21 +357,10 @@ class Calls:
             raise CallError("Send either audio or text.")
         if audio and len(audio) > MAX_AUDIO_BYTES:
             raise CallError("Say it in under 30 seconds.")
-        try:
-            if audio:
-                await call.session.send_realtime_input(activity_start=types.ActivityStart())
-                await call.session.send_realtime_input(audio=types.Blob(data=audio, mime_type="audio/pcm;rate=16000"))
-                await call.session.send_realtime_input(activity_end=types.ActivityEnd())
-            else:
-                await call.session.send_client_content(
-                    turns=types.Content(role="user", parts=[types.Part(text=text)]), turn_complete=True
-                )
-        except Exception as e:
-            logger.warning("verification call dropped while sending: %s", type(e).__name__)
-            await self._finish(call)
-            raise CallError("The call dropped. Call the number yourself.") from None
-        if text:
-            call.transcript.append(Turn(speaker="payee", text=text))
+        if audio:
+            call.speak(audio)
+        else:
+            call.say(text or "")
         call.turns += 1
 
     async def stream(self, payment_id: str) -> AsyncIterator[Event]:
@@ -308,10 +392,7 @@ class Calls:
     async def _close(self) -> None:
         call, self._call = self._call, None
         if call is not None:
-            try:
-                await call.stack.aclose()
-            except Exception:  # the session may already be gone; nothing more to close
-                pass
+            await call.close()
 
 
 calls = Calls()
