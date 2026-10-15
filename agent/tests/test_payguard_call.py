@@ -6,7 +6,7 @@ from google.genai import types
 
 from app.payguard import demo
 from app.payguard.approvals import store
-from app.payguard.call import CallError, Calls, Event, brief
+from app.payguard.call import ANSWERED, CallError, Calls, Event, brief
 from app.payguard.rules import check
 
 
@@ -33,23 +33,40 @@ def records(**args) -> list[list[types.LiveServerMessage]]:
 
 
 class FakeSession:
-    """Plays the agent's side: one scripted reply per turn the payee takes."""
+    """Plays the agent's side of the Live session ADK opens: one scripted reply each time the payee's turn ends
+    (typed text, or the end of speech) or a tool response comes back. With no reply left, it stays silent."""
 
     def __init__(self, replies: list[list[types.LiveServerMessage]]) -> None:
         self.replies = replies
         self.sent: list = []
         self.tool_responses: list = []
+        self.turns: asyncio.Queue | None = None
+        self.session_id = "fake"
+
+    async def close(self):
+        pass
+
+    def _queue(self) -> asyncio.Queue:
+        if self.turns is None:
+            self.turns = asyncio.Queue()
+        return self.turns
 
     async def send_client_content(self, turns, turn_complete):
-        self.sent.append(turns.parts[0].text)
+        self.sent.append(turns)
 
     async def send_realtime_input(self, **kwargs):
         self.sent.append(kwargs)
+        if "text" in kwargs or "activity_end" in kwargs:
+            self._queue().put_nowait(None)
 
     async def send_tool_response(self, function_responses):
         self.tool_responses += function_responses
+        self._queue().put_nowait(None)
 
     async def receive(self):
+        await self._queue().get()
+        if not self.replies:
+            await asyncio.Event().wait()
         for msg in self.replies.pop(0):
             yield msg
 
@@ -76,20 +93,14 @@ def checked(payment_id: str) -> None:
     store.checked(payment_id, check(demo.ledger(), s.payment, s.instruction))
 
 
-def start(calls: Calls, payment_id: str) -> list[Event]:
-    async def go():
-        await calls.open(payment_id)
-        return [e async for e in calls.stream(payment_id)]
-
-    return asyncio.run(go())
+async def start(calls: Calls, payment_id: str) -> list[Event]:
+    await calls.open(payment_id)
+    return [e async for e in calls.stream(payment_id)]
 
 
-def say(calls: Calls, payment_id: str, **kwargs) -> list[Event]:
-    async def go():
-        await calls.send(payment_id, **kwargs)
-        return [e async for e in calls.stream(payment_id)]
-
-    return asyncio.run(go())
+async def say(calls: Calls, payment_id: str, **kwargs) -> list[Event]:
+    await calls.send(payment_id, **kwargs)
+    return [e async for e in calls.stream(payment_id)]
 
 
 def done(events: list[Event]) -> Event | None:
@@ -116,11 +127,15 @@ def test_agent_voice_streams_and_code_confirms_the_answer():
     checked("P-1002")
     session = FakeSession([said("This is an automated call."), *records(account_number="8812345", amount=486000)])
     calls = Calls(connect_to(session))
-    first = start(calls, "P-1002")
-    assert [e.type for e in first] == ["said", "audio"] and done(first) is None
-    last = say(calls, "P-1002", text="Yuunagi Bank, 8812345, 486,000 yen.")
-    assert done(last).outcome == "confirmed" and last[-1].type == "done"
-    assert any(e.type == "said" and e.text == "Thank you." for e in last)
+
+    async def go():
+        first = await start(calls, "P-1002")
+        assert [e.type for e in first] == ["audio", "said"] and done(first) is None
+        last = await say(calls, "P-1002", text="Yuunagi Bank, 8812345, 486,000 yen.")
+        assert done(last).outcome == "confirmed" and last[-1].type == "done"
+        assert any(e.type == "said" and e.text == "Thank you." for e in last)
+
+    asyncio.run(go())
     assert session.tool_responses[0].name == "record_answer"
     item = store.get("P-1002")
     assert item.call.confirmed and [t.speaker for t in item.call.transcript] == ["agent", "payee", "agent"]
@@ -129,20 +144,27 @@ def test_agent_voice_streams_and_code_confirms_the_answer():
 def test_payee_states_the_registered_account_and_the_payment_is_held():
     checked("P-1002")
     calls = Calls(connect_to(FakeSession([said("Hello."), *records(account_number="1234567", amount=486000)])))
-    start(calls, "P-1002")
-    assert done(say(calls, "P-1002", text="Isana Bank, 1234567.")).outcome == "mismatch"
+
+    async def go():
+        await start(calls, "P-1002")
+        return done(await say(calls, "P-1002", text="Isana Bank, 1234567."))
+
+    assert asyncio.run(go()).outcome == "mismatch"
     assert store.get("P-1002").status == "held"
 
 
-def test_audio_is_sent_between_activity_marks():
+def test_the_call_is_answered_then_audio_is_sent_between_activity_marks():
     checked("P-1002")
     session = FakeSession([said("Hello."), said("Could you say the amount?")])
     calls = Calls(connect_to(session))
-    start(calls, "P-1002")
-    events = say(calls, "P-1002", audio=bytes(3200))
-    assert done(events) is None
-    kinds = [next(iter(k)) for k in session.sent[1:]]
-    assert kinds == ["activity_start", "audio", "activity_end"]
+
+    async def go():
+        await start(calls, "P-1002")
+        return await say(calls, "P-1002", audio=bytes(3200))
+
+    assert done(asyncio.run(go())) is None
+    assert session.sent[0] == {"text": ANSWERED}
+    assert [next(iter(k)) for k in session.sent[1:]] == ["activity_start", "audio", "activity_end"]
 
 
 def test_answer_counts_even_if_the_goodbye_never_comes(monkeypatch):
@@ -150,39 +172,48 @@ def test_answer_counts_even_if_the_goodbye_never_comes(monkeypatch):
 
     monkeypatch.setattr(call_module, "FOLLOW_UP_TIMEOUT", 0.05)
     checked("P-1002")
-
-    class Silent(FakeSession):
-        async def receive(self):
-            if not self.replies:
-                await asyncio.sleep(1)
-            for msg in self.replies.pop(0) if self.replies else []:
-                yield msg
-
     tool_turn = records(account_number="8812345", amount=486000)[0]
-    calls = Calls(connect_to(Silent([said("Hello."), tool_turn])))
-    start(calls, "P-1002")
-    assert done(say(calls, "P-1002", text="8812345, 486,000 yen.")).outcome == "confirmed"
+    calls = Calls(connect_to(FakeSession([said("Hello."), tool_turn])))
+
+    async def go():
+        await start(calls, "P-1002")
+        return done(await say(calls, "P-1002", text="8812345, 486,000 yen."))
+
+    assert asyncio.run(go()).outcome == "confirmed"
 
 
 def test_hang_up_without_an_answer_leaves_the_call_to_a_person():
     checked("P-1002")
     calls = Calls(connect_to(FakeSession([said("Hello.")])))
-    start(calls, "P-1002")
-    event = asyncio.run(calls.hang_up("P-1002"))
+
+    async def go():
+        await start(calls, "P-1002")
+        return await calls.hang_up("P-1002")
+
+    event = asyncio.run(go())
     assert event.type == "done" and event.outcome == "incomplete"
     item = store.get("P-1002")
     assert item.call is None and item.status == "pending"
 
 
-def test_a_dropped_session_confirms_nothing():
+def test_a_session_that_drops_mid_call_confirms_nothing():
     checked("P-1002")
 
     class Dropping(FakeSession):
         async def receive(self):
-            raise ConnectionError("gone")
-            yield  # pragma: no cover
+            await self._queue().get()
+            if not self.replies:
+                raise ConnectionError("gone")
+            for msg in self.replies.pop(0):
+                yield msg
 
-    events = start(Calls(connect_to(Dropping([]))), "P-1002")
+    calls = Calls(connect_to(Dropping([said("Hello.")])))
+
+    async def go():
+        await start(calls, "P-1002")
+        return await say(calls, "P-1002", text="Isana Bank.")
+
+    events = asyncio.run(go())
     assert [e.type for e in events] == ["error", "done"] and done(events).outcome == "incomplete"
     assert store.get("P-1002").call is None
 
@@ -212,19 +243,31 @@ def test_one_call_at_a_time():
     checked("P-1002")
     checked("P-1003")
     calls = Calls(connect_to(FakeSession([said("Hello.")])))
-    start(calls, "P-1002")
-    with pytest.raises(CallError):
-        asyncio.run(calls.open("P-1003"))
+
+    async def go():
+        await start(calls, "P-1002")
+        with pytest.raises(CallError):
+            await calls.open("P-1003")
+        await calls.hang_up("P-1002")
+
+    asyncio.run(go())
 
 
 def test_agent_is_given_the_tool_push_to_talk_and_one_language():
     checked("P-1002")
     seen: list = []
-    start(Calls(connect_to(FakeSession([said("Hello.")]), seen)), "P-1002")
+    calls = Calls(connect_to(FakeSession([said("Hello.")]), seen))
+
+    async def go():
+        await start(calls, "P-1002")
+        await calls.hang_up("P-1002")
+
+    asyncio.run(go())
     config = seen[0]
-    assert config.tools[0].function_declarations[0].name == "record_answer"
+    assert [d.name for t in config.tools for d in t.function_declarations] == ["record_answer"]
     assert config.realtime_input_config.automatic_activity_detection.disabled
     assert config.speech_config.language_code == "en-US"
+    assert "never suggest one" in config.system_instruction.parts[0].text
 
 
 def test_endpoints_stream_one_event_per_line(monkeypatch):
@@ -238,12 +281,12 @@ def test_endpoints_stream_one_event_per_line(monkeypatch):
     checked("P-1002")
     session = FakeSession([said("Hello."), *records(account_number="8812345", amount=486000)])
     monkeypatch.setattr(api, "calls", Calls(connect_to(session)))
-    client = TestClient(app)
-    res = client.post("/demo/payments/P-1002/agent-call")
-    assert res.headers["content-type"].startswith("application/x-ndjson")
-    assert [json.loads(line)["type"] for line in res.text.splitlines()] == ["said", "audio"]
-    assert client.post("/demo/payments/P-1002/agent-call/say", json={"audio": "not base64!"}).status_code == 422
-    res = client.post("/demo/payments/P-1002/agent-call/say", json={"text": "8812345, 486,000 yen."})
-    assert json.loads(res.text.splitlines()[-1]) == {"type": "done", "outcome": "confirmed"}
-    assert client.post("/demo/payments/P-1002/agent-call/hang-up").status_code == 409  # already over
-    assert client.post("/demo/payments/P-1001/agent-call").status_code == 409  # unchecked: no call to make
+    with TestClient(app) as client:  # one event loop for the whole call, as in the server
+        res = client.post("/demo/payments/P-1002/agent-call")
+        assert res.headers["content-type"].startswith("application/x-ndjson")
+        assert [json.loads(line)["type"] for line in res.text.splitlines()] == ["audio", "said"]
+        assert client.post("/demo/payments/P-1002/agent-call/say", json={"audio": "not base64!"}).status_code == 422
+        res = client.post("/demo/payments/P-1002/agent-call/say", json={"text": "8812345, 486,000 yen."})
+        assert json.loads(res.text.splitlines()[-1]) == {"type": "done", "outcome": "confirmed"}
+        assert client.post("/demo/payments/P-1002/agent-call/hang-up").status_code == 409  # already over
+        assert client.post("/demo/payments/P-1001/agent-call").status_code == 409  # unchecked: no call to make
