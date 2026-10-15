@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OriginalView } from "@/components/approvals/original-view";
+import { VerificationCall } from "@/components/approvals/verification-call";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AGENT } from "@/lib/agent-call";
 import { PAYEE_EN } from "@/lib/demo-english";
 import {
   ACCOUNT_TYPE_LABEL,
@@ -27,7 +29,7 @@ import {
   formatYen,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { CheckResponse, FindingCode, HistoryItem, InstructionField, PaymentDetail } from "@/lib/payguard";
+import type { CallLog, CheckResponse, FindingCode, HistoryItem, InstructionField, PaymentDetail } from "@/lib/payguard";
 
 type CheckState =
   | { state: "running" }
@@ -79,6 +81,45 @@ function History({ items }: { items: HistoryItem[] }) {
   );
 }
 
+const CALL_RESULT: Record<NonNullable<CallLog["outcome"]>, string> = {
+  confirmed: "stated the same account and amount as the transfer",
+  mismatch: "stated a different account or amount",
+  denied: "made no such request",
+  incomplete: "confirmed nothing",
+};
+
+// A call made by the verification agent, as logged: who was called, what code made of it, and the transcript.
+function AgentCallRecord({ call }: { call: CallLog }) {
+  const ok = call.confirmed;
+  return (
+    <div className="flex flex-col gap-2 text-sm">
+      <div className={cn("flex items-start gap-2", ok ? "text-emerald-800" : "text-red-900")}>
+        {ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <Ban className="mt-0.5 size-4 shrink-0" />}
+        <span>
+          The agent called {call.contact.name} at {formatDayTime(call.at)}. They{" "}
+          {CALL_RESULT[call.outcome ?? "incomplete"]}
+          {call.mismatched && call.mismatched.length > 0 &&
+            ` (${call.mismatched.map((f) => FIELD_LABEL[f as InstructionField] ?? f).join(", ").toLowerCase()})`}
+          . Code compared it, not Gemini.
+        </span>
+      </div>
+      {call.transcript && call.transcript.length > 0 && (
+        <details className="rounded-md border bg-background p-2">
+          <summary className="cursor-pointer text-xs font-medium">Read the call</summary>
+          <ol className="mt-2 flex flex-col gap-1.5">
+            {call.transcript.map((t, i) => (
+              <li key={i}>
+                <span className="text-xs text-muted-foreground">{t.speaker === "agent" ? "Agent" : call.contact.name}: </span>
+                {t.text}
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
+    </div>
+  );
+}
+
 function PersonSelect({
   value,
   people,
@@ -115,6 +156,7 @@ function NoticeCard({
   busy,
   onActingAs,
   onLogCall,
+  onCallFinished,
   onRetry,
 }: {
   check: CheckState;
@@ -123,6 +165,7 @@ function NoticeCard({
   busy: boolean;
   onActingAs: (v: string) => void;
   onLogCall: (confirmed: boolean) => void;
+  onCallFinished: () => void;
   onRetry: () => void;
 }) {
   const { status, call } = detail;
@@ -133,6 +176,11 @@ function NoticeCard({
           <CardTitle>Decision recorded</CardTitle>
           <CardDescription>This payment is {STATUS_LABEL[status].toLowerCase()}. See the history for details.</CardDescription>
         </CardHeader>
+        {call?.by === AGENT && (
+          <CardContent>
+            <AgentCallRecord call={call} />
+          </CardContent>
+        )}
       </Card>
     );
   }
@@ -241,6 +289,7 @@ function NoticeCard({
   }
 
   const confirmed = call?.confirmed === true;
+  const byAgent = call?.by === AGENT;
   return (
     <Card className="border-amber-300 bg-amber-50/60">
       <CardHeader>
@@ -284,7 +333,9 @@ function NoticeCard({
 
         <div className="flex flex-col gap-2">
           <div className="text-sm font-medium">1. Call and record the answer</div>
-          {confirmed ? (
+          {confirmed && byAgent ? (
+            <AgentCallRecord call={call} />
+          ) : confirmed ? (
             <div className="flex items-center gap-2 text-sm text-emerald-800">
               <CheckCircle2 className="size-4" />
               {call.by} called at {formatDayTime(call.at)}: confirmed
@@ -297,8 +348,12 @@ function NoticeCard({
             </div>
           ) : (
             <>
-              <div className="text-sm text-muted-foreground">
-                Ask them to confirm account {detail.payment.account.number} and {formatYen(detail.payment.amount)}.
+              {contact && (
+                <VerificationCall paymentId={detail.payment.id} contactName={contact.name} onFinished={onCallFinished} />
+              )}
+              <div className="pt-1 text-sm text-muted-foreground">
+                Or call yourself: ask them to confirm account {detail.payment.account.number} and{" "}
+                {formatYen(detail.payment.amount)}.
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -325,18 +380,24 @@ function NoticeCard({
         </div>
 
         <div className="flex flex-col gap-2">
-          <div className="text-sm font-medium">2. Second approval, by someone else</div>
+          <div className="text-sm font-medium">
+            {byAgent ? "2. Approve, after reading the call" : "2. Second approval, by someone else"}
+          </div>
           <p className="text-sm text-muted-foreground">
             {!confirmed
-              ? "After a confirmed call, someone other than the caller approves."
-              : actingAs === call.by
+              ? "After the agent's call confirms it, one person approves. After your own call, someone other than the caller approves."
+              : byAgent
+                ? actingAs
+                  ? `Approve as ${actingAs}. The agent made the call; it cannot approve.`
+                  : "Choose who you are above, then approve. The agent made the call; it cannot approve."
+                : actingAs === call.by
                 ? `You made the call. ${call.by} cannot also approve: open this payment in a private window or another browser, choose someone else, and approve there.`
                 : `Approve as ${actingAs}. It must be a different browser from the one the call was logged in.`}
           </p>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {wording} Your rules need a recorded call and a second approver.{unread}
+          {wording} Your rules need a recorded call and an approver who did not make it.{unread}
         </p>
       </CardContent>
     </Card>
@@ -416,6 +477,7 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
   const rank = { pass: 0, verify: 1, block: 2 } as const;
   const tier =
     result && call && initial.tier && rank[initial.tier] > rank[result.tier] ? initial.tier : result?.tier;
+  // A confirmed call, then an approver who did not make it: after the agent's call, one person approves.
   const ready =
     tier === "pass" || (tier === "verify" && call?.confirmed === true && actingAs !== "" && actingAs !== call.by);
   const canApprove = status === "pending" && ready && !deciding;
@@ -536,6 +598,7 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
                 busy={deciding}
                 onActingAs={chooseActingAs}
                 onLogCall={(confirmed) => post("call", { confirmed })}
+                onCallFinished={() => router.refresh()}
                 onRetry={runCheck}
               />
               <Card>

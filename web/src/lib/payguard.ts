@@ -94,6 +94,10 @@ export type CallLog = {
   // The transfer the payee was asked about; null on calls logged before it was recorded.
   account_number?: string | null;
   amount?: number | null;
+  // A call by the verification agent: what code made of the payee's answers, and the call as transcribed.
+  outcome?: "confirmed" | "mismatch" | "denied" | "incomplete" | null;
+  mismatched?: string[];
+  transcript?: { speaker: "agent" | "payee"; text: string }[];
 };
 
 export type Notice = { action: string; reasons: { code: FindingCode; text: string }[]; source: "model" | "template" };

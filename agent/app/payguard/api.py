@@ -205,7 +205,7 @@ async def say_on_agent_call(payment_id: str, req: SayRequest) -> StreamingRespon
     return _reply(payment_id)
 
 
-@router.post("/demo/payments/{payment_id}/agent-call/hang-up")
+@router.post("/demo/payments/{payment_id}/agent-call/hang-up", response_model_exclude_none=True)
 async def hang_up_agent_call(payment_id: str) -> Event:
     _scenario(payment_id)
     try:
