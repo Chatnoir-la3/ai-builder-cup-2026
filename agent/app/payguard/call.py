@@ -38,6 +38,7 @@ REPLY_TIMEOUT = 30
 FOLLOW_UP_TIMEOUT = 8  # after record_answer, how long to wait for the agent to say goodbye
 MAX_AUDIO_BYTES = 30 * 16_000 * 2  # 30 s of 16 kHz 16-bit mono
 RECORD = "record_answer"
+ANSWERED = "(The call is answered.)"  # tells the agent to start speaking
 # How the agent says the demo's names in English; the ledger keeps them in Japanese.
 NAMES_EN = {
     "ツバクロ建材株式会社": "Tsubakuro Kenzai",
@@ -123,6 +124,7 @@ def brief(payment: Payment, contact: Contact) -> str:
         "or say whether what they state matches, or what will happen to the payment. If they ask, say the "
         "accounts team will check it. "
         "If they say they made no such request, or will not state it, do not press. "
+        "The account number and the amount are what matter: once both have been stated, ask for nothing more. "
         f"When you have the answer, call {RECORD} once, thank them and end the call. "
         "Keep every reply to one or two short sentences."
     )
@@ -245,7 +247,7 @@ class Calls:
         try:
             session = await stack.enter_async_context(self._connect(live_config(brief(payment, item.verify_with))))
             await session.send_client_content(
-                turns=types.Content(role="user", parts=[types.Part(text="(The call is answered.)")]), turn_complete=True
+                turns=types.Content(role="user", parts=[types.Part(text=ANSWERED)]), turn_complete=True
             )
         except Exception as e:
             logger.warning("verification call could not connect: %s", type(e).__name__)

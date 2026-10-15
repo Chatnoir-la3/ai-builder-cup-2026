@@ -1,10 +1,11 @@
+import { CallTable } from "@/components/evaluation/call-table";
 import { EvaluationTable } from "@/components/evaluation/evaluation-table";
 import { ReadingTable } from "@/components/evaluation/reading-table";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getEvaluation, getReadingEvaluation } from "@/lib/payguard-server";
+import { getCallEvaluation, getEvaluation, getReadingEvaluation } from "@/lib/payguard-server";
 
 function Results({
   title,
@@ -44,9 +45,13 @@ function Results({
 
 export default async function EvaluationPage(props: PageProps<"/evaluation">) {
   const { tab } = await props.searchParams;
-  const [{ summary: s, cases }, reading] = await Promise.all([getEvaluation(), getReadingEvaluation()]);
+  const [{ summary: s, cases }, reading, calls] = await Promise.all([
+    getEvaluation(),
+    getReadingEvaluation(),
+    getCallEvaluation(),
+  ]);
+  const c = calls.summary;
   const r = reading.summary;
-  const done = r.runs - r.failed;
   const genuineByLedger = (tier: string) => cases.filter((c) => c.kind === "genuine" && c.ledger_tier === tier).length;
   const rows: {
     label: string;
@@ -88,22 +93,56 @@ export default async function EvaluationPage(props: PageProps<"/evaluation">) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Evaluation</h1>
           <p className="text-sm text-muted-foreground">
-            How well Gemini reads the originals, and what the rules decide on what it reads.
+            How well Gemini reads the originals, what the rules decide on what it reads, and how the verification
+            call goes.
           </p>
         </div>
 
-        <Tabs defaultValue={tab === "reading" ? "reading" : "rules"} className="gap-4">
+        <Tabs defaultValue={tab === "reading" || tab === "calls" ? tab : "rules"} className="gap-4">
           <TabsList>
             <TabsTrigger value="rules">Rules · {cases.length} cases</TabsTrigger>
             <TabsTrigger value="reading">Reading by Gemini · {r.cases} cases</TabsTrigger>
+            <TabsTrigger value="calls">Verification calls · {c.cases} cases</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="calls" className="flex flex-col gap-4">
+            <Results
+              title="Results"
+              description={
+                <>
+                  Gemini Live ({c.model}) called each scripted payee {c.runs / c.cases} times on {c.run_on}. The payee&apos;s
+                  lines are typed, so speech recognition is not scored here. Code compares what the agent recorded with
+                  the transfer, as in the approval queue.
+                </>
+              }
+              rows={[
+                ["Calls where code reached the expected outcome", `${c.as_expected} / ${c.runs}`, ""],
+                [
+                  "Calls where the agent said the transfer's account or amount first",
+                  `${c.leaked}`,
+                  "The agent is never told them, so it cannot lead the payee to confirm them.",
+                ],
+                [
+                  "Calls where the agent said what the payee stated matches",
+                  `${c.vouched}`,
+                  "Only code compares; the agent is told never to say whether it matches.",
+                ],
+                [
+                  "Call length",
+                  `${c.median_seconds} s median`,
+                  `Longest ${c.max_seconds} s, including connecting. ${c.failed} of ${c.runs} calls dropped.`,
+                ],
+              ]}
+            />
+            <CallTable rows={calls.cases} />
+          </TabsContent>
 
           <TabsContent value="reading" className="flex flex-col gap-4">
             <Results
               title="Results"
               description={
                 <>
-                  Gemini ({r.model}) read each case&apos;s originals {done / r.cases} times on {r.run_on}. Scored are
+                  Gemini ({r.model}) read each case&apos;s originals {r.runs / r.cases} times on {r.run_on}. Scored are
                   the five values the rules use, after the code check that keeps a value only when the original shows
                   it.
                 </>
@@ -121,7 +160,7 @@ export default async function EvaluationPage(props: PageProps<"/evaluation">) {
                   "The original did not support the value, so the rules saw nothing and the approver is told.",
                 ],
                 ["Values not read", `${r.missed}`, ""],
-                ["Runs where the rules reach the expected findings", `${r.same_findings} / ${done}`, ""],
+                ["Runs where the rules reach the expected findings", `${r.same_findings} / ${r.runs}`, ""],
                 [
                   "Reading time",
                   `${r.median_seconds} s median`,

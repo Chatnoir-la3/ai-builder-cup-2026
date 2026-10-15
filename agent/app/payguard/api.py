@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import demo, evalset, ledger, readereval
+from . import calleval, demo, evalset, ledger, readereval
 from .call import CallError, Event, calls
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
 from .models import CheckResult, Channel, Contact, Payment, Tier
@@ -233,6 +233,11 @@ class Evaluation(BaseModel):
 def evaluation() -> Evaluation:
     rows = evalset.results()
     return Evaluation(summary=evalset.summary(rows), cases=rows)
+
+
+@router.get("/demo/eval/calls")  # before /demo/eval/{case_id}, which would match it
+def call_evaluation() -> calleval.Evaluation:
+    return calleval.evaluation()
 
 
 @router.get("/demo/eval/reading")  # before /demo/eval/{case_id}, which would match it

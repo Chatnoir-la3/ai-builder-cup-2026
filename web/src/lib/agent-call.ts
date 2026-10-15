@@ -1,11 +1,13 @@
 // The verification call in the browser: the agent's reply arrives as one JSON event per line (agent call.py),
 // its voice as 16-bit PCM at 24 kHz; the payee's voice goes up as 16-bit PCM at 16 kHz.
 
+import type { CallOutcome } from "@/lib/payguard";
+
+export type { CallOutcome };
+
 export const AGENT = "Verification agent";
 export const PLAYBACK_RATE = 24_000;
 export const RECORD_RATE = 16_000;
-
-export type CallOutcome = "confirmed" | "mismatch" | "denied" | "incomplete";
 
 export type CallEvent =
   | { type: "audio"; data: string }

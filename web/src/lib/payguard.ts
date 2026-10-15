@@ -203,3 +203,42 @@ export type ReadingSummary = {
 };
 
 export type ReadingEvaluation = { summary: ReadingSummary; cases: ReadingCase[] };
+
+// calleval.py
+export type CallOutcome = "confirmed" | "mismatch" | "denied" | "incomplete";
+export type CallTurn = { speaker: "agent" | "payee"; text: string };
+
+export type CallRun = {
+  outcome: CallOutcome;
+  as_expected: boolean;
+  leaked: boolean;
+  vouched: boolean;
+  transcript: CallTurn[];
+  seconds: number;
+};
+
+export type CallCase = {
+  id: string;
+  title: string;
+  note: string;
+  payment_of: string;
+  lines: string[];
+  expected: CallOutcome;
+  runs: CallRun[];
+  failed: number;
+};
+
+export type CallSummary = {
+  model: string;
+  run_on: string;
+  cases: number;
+  runs: number;
+  as_expected: number;
+  leaked: number;
+  vouched: number;
+  failed: number;
+  median_seconds: number;
+  max_seconds: number;
+};
+
+export type CallEvaluation = { summary: CallSummary; cases: CallCase[] };

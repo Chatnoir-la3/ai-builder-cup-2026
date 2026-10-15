@@ -47,9 +47,9 @@ export const NODES: FlowNode[] = [
   { id: "has-phone", kind: "decision", title: "Ledger has a number to call?", detail: "A new payee has none", built: true, x: DECISION, y: 690 },
   { id: "finder", kind: "step", role: "ai", title: "Finder (Gemini + Google Search)", detail: "Looks up the payee's number on public pages", built: true, x: RIGHT, y: 705 },
   { id: "found", kind: "decision", title: "Number found and confirmed?", built: true, x: RIGHT + 20, y: 820 },
-  { id: "call", kind: "step", role: "human", title: "Approver calls", detail: "The ledger number or one Google Search found, never the one in the message", built: true, x: SPINE, y: 840 },
-  { id: "confirmed", kind: "decision", title: "Did they confirm the request?", built: true, x: DECISION, y: 950 },
-  { id: "second", kind: "step", role: "human", title: "Call logged, second approval", detail: "Who called, when, which number", built: true, x: SPINE, y: 1090 },
+  { id: "call", kind: "step", role: "ai", title: "Verification call (Gemini Live)", detail: "Calls the ledger number or one Google Search found; asks them to state the account and amount, which it is never told", built: true, x: SPINE, y: 840 },
+  { id: "confirmed", kind: "decision", title: "Do they match the transfer?", detail: "Code compares what they stated", built: true, x: DECISION, y: 950 },
+  { id: "second", kind: "step", role: "human", title: "One person approves", detail: "After reading the call; the agent cannot approve", built: true, x: SPINE, y: 1090 },
   { id: "send", kind: "step", role: "data", title: "Transfer sent", detail: "", built: true, x: SPINE, y: 1190 },
   { id: "recorded", kind: "end", tone: "ok", title: "Account verified in the ledger", detail: "Next time it goes through quietly", built: true, x: END, y: 1290 },
   { id: "quiet", kind: "end", tone: "ok", title: "Approve as usual", detail: "Nothing to show", built: true, x: LEFT, y: 470 },
@@ -95,7 +95,7 @@ export const SCENARIOS: Scenario[] = [
     summary: "A supplier really moved banks after a merger.",
     normal: true,
     answers: { external: false, differs: true, "has-phone": true, confirmed: true },
-    outcome: "The supplier confirms on the ledger number. Sent, and the new account is now verified.",
+    outcome: "Called on the ledger number, the supplier states the new account and amount; code finds they match. Sent, and the new account is now verified.",
   },
   {
     id: "new-supplier",
@@ -103,7 +103,7 @@ export const SCENARIOS: Scenario[] = [
     summary: "A real company with no history in the ledger yet.",
     normal: true,
     answers: { external: false, differs: true, "has-phone": false, found: true, confirmed: true },
-    outcome: "Gemini finds the payee's number on a public page, the supplier confirms, and the account is recorded.",
+    outcome: "Gemini finds the payee's number on a public page, the supplier states the account and amount on the call, and the account is recorded.",
   },
   {
     id: "lookalike-account-change",
@@ -111,7 +111,7 @@ export const SCENARIOS: Scenario[] = [
     summary: "tsubakur0-kenzai.example asks to pay a new account.",
     normal: false,
     answers: { external: false, differs: true, "has-phone": true, confirmed: false },
-    outcome: "The real supplier, called on the ledger number, never sent it. Held.",
+    outcome: "Called on the ledger number, the real supplier states its old account. Code finds it differs: held.",
   },
   {
     id: "ceo-line-new-payee",
@@ -119,7 +119,7 @@ export const SCENARIOS: Scenario[] = [
     summary: "'In a meeting, pay ¥3,000,000 today.'",
     normal: false,
     answers: { external: false, differs: true, "has-phone": true, confirmed: false },
-    outcome: "The CEO, called on the number in the ledger, knows nothing about it. Held.",
+    outcome: "Called on the number in the ledger, the CEO says they asked for no transfer. Held.",
   },
   {
     id: "fake-supplier",

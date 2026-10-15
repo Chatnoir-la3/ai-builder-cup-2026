@@ -67,7 +67,7 @@ export const ACCOUNT_TYPE_LABEL = { ordinary: "Ordinary", current: "Current" } a
 
 export const TIER_LABEL: Record<Tier, string> = {
   pass: "Approve as usual",
-  verify: "Call, then second approval",
+  verify: "Verification call, then approval",
   block: "Cannot be approved",
 };
 
