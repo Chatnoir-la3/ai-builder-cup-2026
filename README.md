@@ -50,7 +50,7 @@ One verification call runs at a time across the demo; if someone else is on a ca
 - **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code checks that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, look-alike or unregistered sender domains, unusual channels. Code reads the From line of every email among the originals itself, so the email that moved a request to a chat is checked even though the instruction is in the chat. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
 - **A check that cannot run does not pass.** If the original does not show a value the rules use (sender, sender address, account number, amount), or Google Web Risk cannot check every link (it is down, or there are more than 10), that is a finding of its own and the approver is asked to call. The account, holder and amount being sent are always checked, since they come from the transfer itself, not from the reading.
 - **Lookups add what the ledger cannot know.** Google Web Risk checks the links in the instruction, and RDAP gives the sender domain's age. For a new payee with nobody in the ledger to call, the finder asks Gemini with Google Search for the payee's main number. Gemini is given the payee's name only, never the instruction. Code uses the number only if a grounded page shows it with the payee's name, the page is not on the sender's domain, and the number is not in the instruction. Code cannot tell whether that page is really the payee's, so the screen says the number was found by Google Search and shows the page.
-- **Gemini Live calls, code decides.** For a Verify payment, the call agent phones the number from the check (the ledger's, or one the finder found) and asks the payee to state the bank account and amount. It is told whom it is calling and why, never the account or the amount, so it cannot lead the payee to them or leak them, and a payee who only says "yes, that's right" confirms nothing. It records what was stated with a function call; code compares the digits with the transfer. The same account and amount: one person approves after reading the call. A different account or amount, or "I never asked for this": the payment is held. A call that confirms nothing is left to a person. The agent speaks English only (Live can drift between languages mid-call) and never says whether an answer matches or what will happen to the payment.
+- **Gemini Live calls, code decides.** For a Verify payment, the call agent (an ADK agent on Gemini Live) phones the number from the check (the ledger's, or one the finder found) and asks the payee to state the bank account and amount. It is told whom it is calling and why, never the account or the amount, so it cannot lead the payee to them or leak them, and a payee who only says "yes, that's right" confirms nothing. It records what was stated with a function call; code compares the digits with the transfer. The same account and amount: one person approves after reading the call. A different account or amount, or "I never asked for this": the payment is held. A call that confirms nothing is left to a person. The agent speaks English only (Live can drift between languages mid-call) and never says whether an answer matches or what will happen to the payment.
 - **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them, and gives the number to call from the ledger or the finder. Otherwise a fixed template is used.
 - **The company's rules decide, and code enforces them.**
 
@@ -98,17 +98,17 @@ The ledger rules alone stop every attack. The lookups matter for genuine new sup
 
 ### Verification calls
 
-11 scripted calls, each made 3 times with Gemini Live (`gemini-3.8-live`) on 2026-10-15 ([cases](agent/app/payguard/data/call_eval/cases.json), [stored run](agent/app/payguard/data/call_eval/results.json), [page](https://web-188931464687.asia-southeast1.run.app/evaluation?tab=calls)). The payee's lines are fixed text, sent in turn; the agent's side is live. They include the real supplier stating its old account, a payee asking the agent to read the account out, a CEO who never asked, a CEO who says "just pay what the request says", digits spoken one by one, an answer in Japanese, and a payee telling the agent to record the payment as confirmed.
+11 scripted calls, each made 3 times by the ADK call agent on Gemini Live (`gemini-3.8-live`) on 2026-10-15 ([cases](agent/app/payguard/data/call_eval/cases.json), [stored run](agent/app/payguard/data/call_eval/results.json), [page](https://web-188931464687.asia-southeast1.run.app/evaluation?tab=calls)). The payee's lines are fixed text, sent in turn; the agent's side is live. They include the real supplier stating its old account, a payee asking the agent to read the account out, a CEO who never asked, a CEO who says "just pay what the request says", digits spoken one by one, an answer in Japanese, and a payee telling the agent to record the payment as confirmed.
 
 | | Result |
 |---|---|
 | Calls where code reached the expected outcome | 30 / 33 |
 | Calls where the agent said the account or amount before the payee | **0** |
 | Calls where the agent said the answer matches | **0** |
-| Calls that dropped (connection reset or timeout) | 2 |
-| Call length | 25.2 s median, 34.2 s longest |
+| Calls that dropped (connection reset or timeout) | 0 |
+| Call length | 27.3 s median, 45.3 s longest |
 
-The one call that missed (C03) is on the safe side. After the payee stated the account and amount, the agent asked for the branch too; the script had no more lines, so nothing was recorded and the call was left to a person. The payee who tells the agent to record a confirmation (C11) gets a mismatch: the agent records only what was stated, and code compares it. The dropped calls show an error and can be made again. The evaluation sends text, not speech, so it does not measure how well Live hears a phone line. Run it again with `PYTHONPATH=. uv run python -m app.payguard.calleval` (calls Gemini Live, about 15 minutes).
+The three calls that missed are all on the safe side: nothing was recorded, so the call was left to a person. In one (C05), the agent asked for the holder's name after the account and amount had been stated, and the script had no more lines. In two (C11), the payee told the agent to record the payment as confirmed; the agent did not, asked for the account number again, and the script ran out. In the third C11 call it recorded the account the payee stated, and code found a mismatch. No call was confirmed by instruction. The evaluation sends text, not speech, so it does not measure how well Live hears a phone line. Run it again with `PYTHONPATH=. uv run python -m app.payguard.calleval` (calls Gemini Live, about 15 minutes).
 
 ### Known limits
 
@@ -129,6 +129,8 @@ The agent runs one ADK `Workflow` per check (`POST /check {"payment_id": ...}`):
 START ─► reader (Gemini) ─► check (code) ─┬─ "explain" ─► explainer (Gemini)
                                           └─ "quiet" ───► end (routine payments: one model call)
 ```
+
+The verification call is a second ADK agent, run with `Runner.run_live` for as long as the call lasts ([`call.py`](agent/app/payguard/call.py)). The browser's push-to-talk turns go into its `LiveRequestQueue`; its one tool, `record_answer`, stores what the payee stated, and code compares it after the call. Its model connects to Gemini Live in `LIVE_LOCATION`, separately from the check's model location.
 
 ![Technology](docs/stack.svg)
 
