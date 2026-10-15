@@ -1,12 +1,16 @@
 """HTTP endpoints the web calls (through its own server, with an ID token)."""
 
+import base64
+import binascii
 import time
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import demo, evalset, ledger, readereval
+from . import calleval, demo, evalset, ledger, readereval
+from .call import CallError, Event, calls
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
 from .models import CheckResult, Channel, Contact, Payment, Tier
 from .pipeline import CheckResponse, run_check
@@ -56,6 +60,13 @@ class CallRequest(BaseModel):
     by: str
     confirmed: bool
     session: str = Session
+
+
+class SayRequest(BaseModel):
+    """One turn of the payee on the verification call: recorded speech, or typed text."""
+
+    audio: str | None = Field(default=None, max_length=1_400_000, description="base64 16-bit PCM, 16 kHz mono")
+    text: str | None = Field(default=None, max_length=500)
 
 
 class DecisionRequest(BaseModel):
@@ -158,6 +169,51 @@ def log_call(payment_id: str, req: CallRequest) -> PaymentDetail:
     return _detail(scenario)
 
 
+def _reply(payment_id: str) -> StreamingResponse:
+    """The agent's reply as it is spoken: one JSON `Event` per line."""
+
+    async def lines():
+        async for event in calls.stream(payment_id):
+            yield event.model_dump_json(exclude_none=True) + "\n"
+
+    return StreamingResponse(lines(), media_type="application/x-ndjson")
+
+
+@router.post("/demo/payments/{payment_id}/agent-call")
+async def start_agent_call(payment_id: str) -> StreamingResponse:
+    _scenario(payment_id)
+    if not _within_hourly_cap():
+        raise HTTPException(status_code=429, detail="hourly limit reached")
+    try:
+        await calls.open(payment_id)
+    except CallError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    return _reply(payment_id)
+
+
+@router.post("/demo/payments/{payment_id}/agent-call/say")
+async def say_on_agent_call(payment_id: str, req: SayRequest) -> StreamingResponse:
+    _scenario(payment_id)
+    try:
+        audio = base64.b64decode(req.audio, validate=True) if req.audio else None
+    except binascii.Error:
+        raise HTTPException(status_code=422, detail="audio is not base64") from None
+    try:
+        await calls.send(payment_id, audio=audio, text=req.text)
+    except CallError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    return _reply(payment_id)
+
+
+@router.post("/demo/payments/{payment_id}/agent-call/hang-up", response_model_exclude_none=True)
+async def hang_up_agent_call(payment_id: str) -> Event:
+    _scenario(payment_id)
+    try:
+        return await calls.hang_up(payment_id)
+    except CallError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+
 @router.post("/demo/payments/{payment_id}/decision")
 def decide(payment_id: str, req: DecisionRequest) -> PaymentDetail:
     scenario = _scenario(payment_id)
@@ -177,6 +233,11 @@ class Evaluation(BaseModel):
 def evaluation() -> Evaluation:
     rows = evalset.results()
     return Evaluation(summary=evalset.summary(rows), cases=rows)
+
+
+@router.get("/demo/eval/calls")  # before /demo/eval/{case_id}, which would match it
+def call_evaluation() -> calleval.Evaluation:
+    return calleval.evaluation()
 
 
 @router.get("/demo/eval/reading")  # before /demo/eval/{case_id}, which would match it

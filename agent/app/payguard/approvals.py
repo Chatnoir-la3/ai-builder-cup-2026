@@ -28,11 +28,14 @@ from pydantic import BaseModel
 from . import demo, ledger
 from .models import CHANNEL_NAMES, CheckResult, Contact, Payment, Tier
 from .storage import QUEUE, backend
+from .verify import Outcome, Statement, Turn, compare
 
 JST = timezone(timedelta(hours=9))
 Status = Literal["pending", "approved", "held"]
 TIER_RANK: dict[str, int] = {"pass": 0, "verify": 1, "block": 2}
 Decision = Literal["approved", "held"]
+AGENT = "Verification agent"  # the call agent, logged as the caller; it never approves
+FIELD_NAMES = {"account_number": "account number", "amount": "amount"}
 
 logger = logging.getLogger("payguard.approvals")
 
@@ -51,6 +54,10 @@ class CallLog(BaseModel):
     # The transfer the payee was asked about; None on calls logged before this was recorded.
     account_number: str | None = None
     amount: int | None = None
+    # A call by the agent: what code made of the payee's answers, and the call as transcribed.
+    outcome: Outcome | None = None
+    mismatched: list[str] = []
+    transcript: list[Turn] = []
 
 
 class QueueItem(BaseModel):
@@ -169,6 +176,56 @@ class ApprovalStore:
             self._save(payment_id, item)
             return item
 
+    def log_agent_call(self, payment_id: str, statement: Statement, transcript: list[Turn]) -> QueueItem:
+        """The agent's call: code compares what the payee stated with the transfer.
+
+        Confirmed: one person approves after reading the call. A different account or amount, or a denial:
+        the payment is held. Anything else confirms nothing and the call is left to a person.
+        """
+        with self._lock:
+            item = self._load(payment_id)
+            if item.status != "pending":
+                raise DecisionError("This payment has already been decided.")
+            if item.tier != "verify" or item.verify_with is None:
+                raise DecisionError("This payment has no call to make.")
+            contact = item.verify_with
+            payment = demo.scenario_for(payment_id).payment
+            result = compare(statement, payment)
+            now = datetime.now(JST)
+            called = f"{AGENT} called {contact.name} on {_number_from(contact)}"
+            if result.outcome == "incomplete":
+                item.history.append(
+                    HistoryItem(at=now, event="called", detail=f"{called}: nothing confirmed; call the number yourself")
+                )
+                self._save(payment_id, item)
+                return item
+            item.call = CallLog(
+                by=AGENT,
+                at=now,
+                contact=contact,
+                confirmed=result.outcome == "confirmed",
+                account_number=payment.account.number,
+                amount=payment.amount,
+                outcome=result.outcome,
+                mismatched=result.mismatched,
+                transcript=transcript,
+            )
+            item.caller_session = None
+            if result.outcome == "confirmed":
+                detail = f"{called}: the payee stated {_transfer(payment)}"
+            elif result.outcome == "denied":
+                detail = f"{called}: {contact.name} made no such request"
+            else:
+                differs = " and ".join(FIELD_NAMES[f] for f in result.mismatched)
+                detail = f"{called}: the payee stated a different {differs}"
+            item.history.append(HistoryItem(at=now, event="called", detail=detail))
+            if not item.call.confirmed:
+                item.status = "held"
+                item.history.append(HistoryItem(at=now, event="held", detail="The call did not confirm it; tell your bank"))
+                self._log(payment_id, item, "held")
+            self._save(payment_id, item)
+            return item
+
     def decide(
         self, payment_id: str, decision: Decision, approver: str | None = None, session: str | None = None
     ) -> QueueItem:
@@ -199,6 +256,10 @@ class ApprovalStore:
         call = item.call
         if call is None or not call.confirmed:
             raise DecisionError("Log a confirmed call before approving.")
+        if call.by == AGENT:
+            if approver not in approvers() or session is None:
+                raise DecisionError("Choose who you are before approving.")
+            return f"Approved by {approver} after the verification call to {_number_from(call.contact)}"
         if approver not in approvers():
             raise DecisionError("Choose the second approver.")
         if approver == call.by:

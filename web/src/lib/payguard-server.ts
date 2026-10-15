@@ -1,7 +1,14 @@
 import { connection } from "next/server";
 
 import { agentFetch } from "@/lib/agent";
-import type { EvalCaseDetail, Evaluation, PaymentDetail, PaymentSummary, ReadingEvaluation } from "@/lib/payguard";
+import type {
+  CallEvaluation,
+  EvalCaseDetail,
+  Evaluation,
+  PaymentDetail,
+  PaymentSummary,
+  ReadingEvaluation,
+} from "@/lib/payguard";
 
 export async function listPayments(): Promise<PaymentSummary[]> {
   await connection();
@@ -28,6 +35,13 @@ export async function getEvaluation(): Promise<Evaluation> {
 export async function getReadingEvaluation(): Promise<ReadingEvaluation> {
   await connection();
   const res = await agentFetch("/demo/eval/reading");
+  if (!res.ok) throw new Error(`agent responded ${res.status}`);
+  return res.json();
+}
+
+export async function getCallEvaluation(): Promise<CallEvaluation> {
+  await connection();
+  const res = await agentFetch("/demo/eval/calls");
   if (!res.ok) throw new Error(`agent responded ${res.status}`);
   return res.json();
 }
