@@ -4,7 +4,9 @@
 
 Built for the Google Cloud AI Builder Cup 2026, BFSI theme.
 
-Just before a company approves a bank transfer, this app compares the instruction (an email, a chat screenshot, an invoice) with the company's own records. When nothing differs, it stays quiet. When something differs, it tells the approver what differs and whom to call, and the company's rules decide what must happen before the money can leave.
+Just before a company approves a bank transfer, this app compares the instruction (an email, a chat screenshot, an invoice) with the company's own records. When nothing differs, it stays quiet. When something differs, an agent on Gemini Live phones the payee on the number from the company's records and asks them to state the account and amount. The agent is never told either; code compares what the payee stated with the transfer, and the company's rules decide what must happen before the money can leave.
+
+The call is the control that stops this fraud, and the step people skip when a request is urgent. The agent makes it every time.
 
 **Live demo:** https://web-188931464687.asia-southeast1.run.app
 
@@ -31,7 +33,11 @@ Open the [live demo](https://web-188931464687.asia-southeast1.run.app). The appr
 | P-1003 | The CEO, by email, moves the conversation to LINE and asks for an urgent transfer | **Verify.** The first email came from outside the company's domain. Call the CEO on the number in the ledger. |
 | P-1004 | A regular invoice whose portal link Google Web Risk lists as phishing | **Block.** Approve is disabled. |
 
-For a Verify payment, choose who you are, call, and record whether the payee confirmed the account and amount. The second approval must come from someone else in a different browser: open the payment in a private window, choose another person, and approve there. Approve stays disabled until the call is confirmed, and the agent refuses a second approval from the caller's browser session. An approved payment is added to the ledger's history, and a confirmed account counts as known from then on.
+For a Verify payment (P-1002, P-1003), press **Let the agent call**. In the demo the phone is your browser: you answer as the payee, by holding **Talk** or by typing, and the screen suggests lines for both outcomes. For P-1002, as the real supplier, say the account has not changed (Isana Bank, 1234567): code finds it differs and the payment is held. Say the new account (Yuunagi Bank, 8812345, ¥486,000) and code finds it matches; then choose who you are and approve. The agent's voice and a transcript stream as it speaks, and the logged call can be read before approving.
+
+You can also call yourself and record whether the payee confirmed it. Then the second approval must come from someone else in a different browser: open the payment in a private window, choose another person, and approve there. Approve stays disabled until a call is confirmed. An approved payment is added to the ledger's history, and a confirmed account counts as known from then on.
+
+One verification call runs at a time across the demo; if someone else is on a call, try again in a few minutes.
 
 - **How it works** walks each scenario through the approval flow.
 - **Evaluation** runs 28 cases through the same rules and explains each result.
@@ -44,18 +50,19 @@ For a Verify payment, choose who you are, call, and record whether the payee con
 - **Gemini reads, code decides.** The reader turns the originals into fields with evidence quotes and image boxes. Plain code checks that reading against the originals and compares it with the ledger: unregistered or recently added accounts, holder name mismatch, amounts above history, look-alike or unregistered sender domains, unusual channels. Code reads the From line of every email among the originals itself, so the email that moved a request to a chat is checked even though the instruction is in the chat. Wording such as "urgent" is not a signal, since it is the easiest thing for a fraudster to change.
 - **A check that cannot run does not pass.** If the original does not show a value the rules use (sender, sender address, account number, amount), or Google Web Risk cannot check every link (it is down, or there are more than 10), that is a finding of its own and the approver is asked to call. The account, holder and amount being sent are always checked, since they come from the transfer itself, not from the reading.
 - **Lookups add what the ledger cannot know.** Google Web Risk checks the links in the instruction, and RDAP gives the sender domain's age. For a new payee with nobody in the ledger to call, the finder asks Gemini with Google Search for the payee's main number. Gemini is given the payee's name only, never the instruction. Code uses the number only if a grounded page shows it with the payee's name, the page is not on the sender's domain, and the number is not in the instruction. Code cannot tell whether that page is really the payee's, so the screen says the number was found by Google Search and shows the page.
+- **Gemini Live calls, code decides.** For a Verify payment, the call agent phones the number from the check (the ledger's, or one the finder found) and asks the payee to state the bank account and amount. It is told whom it is calling and why, never the account or the amount, so it cannot lead the payee to them or leak them, and a payee who only says "yes, that's right" confirms nothing. It records what was stated with a function call; code compares the digits with the transfer. The same account and amount: one person approves after reading the call. A different account or amount, or "I never asked for this": the payment is held. A call that confirms nothing is left to a person. The agent speaks English only (Live can drift between languages mid-call) and never says whether an answer matches or what will happen to the payment.
 - **Gemini explains, code checks.** The explainer sees the findings only, never the originals. Its notice is shown only if it covers exactly those findings, quotes no number outside them, and gives the number to call from the ledger or the finder. Otherwise a fixed template is used.
 - **The company's rules decide, and code enforces them.**
 
 | Tier | When | What the approver must do |
 |---|---|---|
 | Pass | Nothing differs from the ledger | Approve as usual |
-| Verify | Something differs, and there is an independent number to call | Call that number, record the answer, and have a second person approve |
+| Verify | Something differs, and there is an independent number to call | The agent calls that number; if code finds the stated account and amount match, one person approves after reading the call. Or call yourself, record the answer, and have a second person approve |
 | Block | Web Risk lists a link, or there is no independent number to call | Cannot be approved |
 
 ## Evaluation
 
-Two parts, both on the app's **Evaluation** page: how well Gemini reads the originals, and what the rules decide.
+Three parts, all on the app's **Evaluation** page: how well Gemini reads the originals, what the rules decide, and how the verification call agent behaves.
 
 ### Reading by Gemini
 
@@ -83,17 +90,33 @@ The 3 cleared values are the amount written as 48万6千円. Gemini read it as �
 | Genuine payments that need a call | 4 / 10 | 6 / 10 |
 | Genuine payments approved as usual | 4 / 10 | 4 / 10 |
 
-"Stopped" means the payment did not reach a normal approval: it needs a call and a second approver, or it cannot be approved (4 of the 18). The ten genuine payments are hard ones on purpose. A real account change, two new suppliers, an order about twice the past maximum, a request on LINE and a supplier's new email domain all need a call. The other four, such as a regular EDI payment and a holder name the bank prints in half-width kana, pass with nothing shown. How often a real company's payments need a call is not measured here.
+"Stopped" means the payment did not reach a normal approval: it needs a confirmed call first, or it cannot be approved (4 of the 18). The ten genuine payments are hard ones on purpose. A real account change, two new suppliers, an order about twice the past maximum, a request on LINE and a supplier's new email domain all need a call. The other four, such as a regular EDI payment and a holder name the bank prints in half-width kana, pass with nothing shown. How often a real company's payments need a call is not measured here.
 
 We wrote the 28 cases and their expected results ourselves; they are not real payments. 18 / 18 says the rules behave as designed on these cases, not how they fare against attacks we did not think of. Two of the four attacks that cannot be approved (A07, A08) are blocked because the company registry has no such company. That lookup is not connected in the live demo (see Known limits), where the same two payments stop at a call instead.
 
 The ledger rules alone stop every attack. The lookups matter for genuine new suppliers: without an independent number to call, a real first payment cannot be approved. In the evaluation, the lookup results are given per case, so the outcome depends on the rules alone and can be repeated. All 28 cases give the expected findings and tier, and the tests check this.
+
+### Verification calls
+
+11 scripted calls, each made 3 times with Gemini Live (`gemini-3.8-live`) on 2026-10-15 ([cases](agent/app/payguard/data/call_eval/cases.json), [stored run](agent/app/payguard/data/call_eval/results.json), [page](https://web-188931464687.asia-southeast1.run.app/evaluation?tab=calls)). The payee's lines are fixed text, sent in turn; the agent's side is live. They include the real supplier stating its old account, a payee asking the agent to read the account out, a CEO who never asked, a CEO who says "just pay what the request says", digits spoken one by one, an answer in Japanese, and a payee telling the agent to record the payment as confirmed.
+
+| | Result |
+|---|---|
+| Calls where code reached the expected outcome | 30 / 33 |
+| Calls where the agent said the account or amount before the payee | **0** |
+| Calls where the agent said the answer matches | **0** |
+| Calls that dropped (connection reset or timeout) | 2 |
+| Call length | 25.2 s median, 34.2 s longest |
+
+The one call that missed (C03) is on the safe side. After the payee stated the account and amount, the agent asked for the branch too; the script had no more lines, so nothing was recorded and the call was left to a person. The payee who tells the agent to record a confirmation (C11) gets a mismatch: the agent records only what was stated, and code compares it. The dropped calls show an error and can be made again. The evaluation sends text, not speech, so it does not measure how well Live hears a phone line. Run it again with `PYTHONPATH=. uv run python -m app.payguard.calleval` (calls Gemini Live, about 15 minutes).
 
 ### Known limits
 
 - There is no sign-in. Who you are is chosen per browser, so the second approval shows separation between browser sessions, not verified identity.
 - With one person in accounts payable, there is no second approver. The check still flags the payment (case A17).
 - The company registry lookup is designed and its rules are in place, but it is not connected: Japan's corporate number API needs an application ID. The demo leaves it out.
+- The agent call is push-to-talk (hold Talk, or type), not a free-flowing phone call, and one call runs at a time across the demo. Gemini Live runs in `us-central1`.
+- A confirmed call proves that whoever answered the ledger's number stated the account and amount. If the fraudster controls that number, or the payee's own staff are in on it, the call confirms the fraud; this is the limit of every callback control.
 - The reader evaluation is small (10 cases). A value the reader cannot match to an image original is kept if its own quote supports it; only text originals are matched word for word.
 
 ## Architecture
@@ -116,6 +139,7 @@ What leaves the app, and to whom:
 | Gemini on Vertex AI (`global` by default) | The originals in full: email text and images | Every check (reader) |
 | Gemini on Vertex AI | The findings' facts (payee, account, holder, domain, amount, link) and the contact to call; never the originals | When something differs (explainer) |
 | Gemini with Google Search grounding | The payee's name only | A new payee with nobody in the ledger to call (finder) |
+| Gemini Live on Vertex AI (`us-central1`) | The names of the person called, the payee and the payer, and the call audio both ways; never the account or the amount | A verification call |
 | The pages Google Search grounded the answer in | A plain HTTPS request for the page | Same as the finder |
 | Google Web Risk | Links found in text originals, in full (up to 10; more fails the check) | Every check with a link, except reserved names such as `.example` |
 | rdap.org | The sender's email domain | Every email check, except reserved names |
@@ -125,10 +149,11 @@ Vertex AI does not use customer data to train models without permission. Google 
 What is kept:
 
 - Originals are read for the check and are not stored by it.
-- The approval queue in Firestore keeps the findings, the tier, the number to call, who called and approved, and the account and amount the payee confirmed. The ledger keeps the vendor master and payment history.
+- The approval queue in Firestore keeps the findings, the tier, the number to call, who called and approved, and the account and amount the payee confirmed. For an agent call it also keeps the outcome, the fields that differed and the transcript; the audio is not kept. The ledger keeps the vendor master and payment history.
 - Audit rows in BigQuery keep metadata only, with all content redacted.
 - Decision logs record the tier, the finding codes and the call outcome, not names or account numbers.
 - Model Armor screens the text of the prompts and responses of the reader and the explainer, which run inside the ADK workflow. It does not screen images, so a chat screenshot or an invoice image reaches the reader unscreened. The reader can only return the instruction's fields and their evidence, and code decides from those. The finder calls Gemini directly, with the payee's name only, so the plugin does not cover it.
+- Model Armor does not screen the verification call. The call agent has one tool, which records what the payee stated; code compares that with the transfer, and the agent cannot approve, hold or change anything.
 - Model Armor and the audit plugin turn on only when `MODEL_ARMOR_TEMPLATE` and `AUDIT_DATASET` are set, so local development needs neither.
 
 ## Running it for real
@@ -136,8 +161,9 @@ What is kept:
 - **Where it sits.** At the company's approval step, where the transfer and the email that caused it are both in view: the AP workflow of accounting software, or the approval screen of corporate internet banking. It reads the company's own records, not the bank's. A bank can offer it to business customers on that approval screen; the bank's own fraud screening still sees only the transfer. In the demo, `POST /check` takes one of the four demo payments. A real integration would send the payment and its instruction.
 - **The ledger.** It comes from the vendor master and payment history the company already keeps, and it grows by rule. An approval adds the payment to the history, and a confirmed call marks the account as verified.
 - **Scale.** The demo runs one agent instance on purpose. The ledger and the approval queue are in Firestore, but writes are ordered by a lock inside the process, and the hourly check limit is counted in memory. Running more instances needs Firestore transactions in their place, and per-company tenants. A routine payment costs one model call.
-- **Data residency.** The default model runs on `global`. If data must stay in the region, switch to `gemini-3.5-flash` in `asia-southeast1` (see below).
-- **What the demo leaves out.** Sign-in and per-company tenants, the company registry lookup, and integration with a real accounting system or bank.
+- **Data residency.** The default model runs on `global`. If data must stay in the region, switch to `gemini-3.5-flash` in `asia-southeast1` (see below). Gemini Live is offered only in the US and the EU, so the call audio leaves Asia; `LIVE_LOCATION` picks the region.
+- **The phone line.** In the demo the payee is played in the browser. A real call needs a telephony bridge (Contact Center AI or a SIP / Twilio media stream) carrying the same audio. The agent already opens by saying it is an automated call; local rules on automated calls still apply.
+- **What the demo leaves out.** Sign-in and per-company tenants, the company registry lookup, a real phone line, and integration with a real accounting system or bank.
 
 ## Local development
 
