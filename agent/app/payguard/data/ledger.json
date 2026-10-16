@@ -26,7 +26,8 @@
       ],
       "email_domains": ["tsubakuro-kenzai.example"],
       "usual_channels": ["email"],
-      "contact": {"name": "ツバクロ建材 営業部 田中", "phone": "03-0000-2001"}
+      "contact": {"name": "ツバクロ建材 営業部 田中", "phone": "03-0000-2001"},
+      "accounts_contact": {"name": "ツバクロ建材 経理部 中村", "phone": "03-0000-2011"}
     },
     {
       "id": "V002",

@@ -39,7 +39,7 @@ from pydantic import BaseModel, Field, ValidationError
 from . import demo, ledger
 from .approvals import AGENT, DecisionError, store
 from .models import Contact, Payment
-from .verify import Outcome, Statement, Turn
+from .verify import Ask, Outcome, Statement, Turn
 
 LIVE_MODEL = os.getenv("LIVE_MODEL", "gemini-3.8-live")
 LIVE_LOCATION = os.getenv("LIVE_LOCATION", "us-central1")
@@ -56,7 +56,7 @@ ANSWERED = "(The call is answered.)"  # tells the agent to start speaking
 # How the agent says the demo's names in English; the ledger keeps them in Japanese.
 NAMES_EN = {
     "ツバクロ建材株式会社": "Tsubakuro Kenzai",
-    "ツバクロ建材 営業部 田中": "Mr. Tanaka in sales",
+    "ツバクロ建材 経理部 中村": "Ms. Nakamura in accounts",
     "株式会社ヒサゴ設備": "Hisago Setsubi",
     "ヒサゴ設備 経理部": "the accounts department",
     "ノギク運送有限会社": "Nogiku Unso",
@@ -73,19 +73,22 @@ logger = logging.getLogger("payguard.call")
 RECORD_ANSWER = types.FunctionDeclaration(
     name=RECORD,
     description=(
-        "Record what the person stated. Call it once, at the end, after they have stated the bank account and the "
-        "amount, refused to, or said they made no such request. Record only what they said, never a guess."
+        "Record what the person stated. Call it once, at the end: after they have answered what you asked, refused "
+        "to, said they made no such request, or said who can confirm it. Record only what they said, never a guess."
     ),
     parameters=types.Schema(
         type="OBJECT",
         properties={
             "bank_name": types.Schema(type="STRING"),
             "branch_name": types.Schema(type="STRING"),
-            "account_number": types.Schema(type="STRING", description="The digits exactly as stated"),
+            "account_number": types.Schema(type="STRING", description="The digits exactly as stated: the last four, or all"),
             "account_holder": types.Schema(type="STRING"),
+            "payee": types.Schema(type="STRING", description="For a request: whom they asked to pay"),
             "amount": types.Schema(type="INTEGER", description="In yen"),
-            "refused": types.Schema(type="BOOLEAN", description="They would not state the account or the amount"),
+            "requested": types.Schema(type="BOOLEAN", description="They say they asked for this transfer"),
+            "refused": types.Schema(type="BOOLEAN", description="They would not state it"),
             "denied": types.Schema(type="BOOLEAN", description="They say they made no such request"),
+            "refer_to": types.Schema(type="STRING", description="Who they said can confirm it: a name or a department"),
         },
     ),
 )
@@ -112,34 +115,41 @@ def _en(name: str) -> str:
     return NAMES_EN.get(name, name)
 
 
-def brief(payment: Payment, contact: Contact) -> str:
-    """What the agent is told. It carries no account number and no amount."""
-    vendor = next((v for v in ledger.current().vendors if v.id == payment.vendor_id), None)
-    person = next((p for p in ledger.current().people if p.contact.phone == contact.phone), None)
-    if person is not None:
-        who = f"{_en(contact.name)}, {_en(person.role)} of {PAYER}"
-        ask = (
-            "A request for a bank transfer in their name is waiting for approval. Ask whether they asked for a "
-            "transfer. If they did, ask them to state the payee, the bank, the account number and the amount."
+def brief(payment: Payment, contact: Contact, ask: Ask) -> str:
+    """What the agent is told: whom it calls and what to ask (see verify). It carries no account and no amount."""
+    if ask.request:
+        person = next((p for p in ledger.current().people if p.contact.phone == contact.phone), None)
+        who = f"{_en(contact.name)}, {_en(person.role) if person else 'a manager'} of {PAYER}"
+        question = (
+            "A request for a bank transfer in their name is waiting for approval. Ask whether they asked for it. "
+            "If they did, ask whom it is to and how much."
         )
     else:
+        vendor = next((v for v in ledger.current().vendors if v.id == payment.vendor_id), None)
         org = _en(vendor.name if vendor else payment.payee_name)
         who = f"{_en(contact.name)} at {org}, a supplier of {PAYER}"
-        ask = (
-            f"{PAYER} is about to pay {org}. Ask them to state the bank, branch, account number, account holder "
-            "and amount they expect to be paid, so the transfer can be checked."
+        question = (
+            f"{PAYER} is about to pay {org}. Ask which bank they want to be paid into and the last four digits of "
+            "the account number; the whole number is fine too."
         )
+        if ask.amount:
+            question += " Ask the amount they expect to be paid as well."
     return (
         f"You are an automated verification call from the accounts payable team of {PAYER}. "
         f"You are calling {who}, on a number from {PAYER}'s own records. "
-        "Speak English only. Start by saying in one sentence that this is an automated call and why. "
-        f"{ask} "
-        "You do not know the account or the amount, and you must never suggest one, read one back as correct, "
-        "or say whether what they state matches, or what will happen to the payment. If they ask, say the "
-        "accounts team will check it. "
-        "If they say they made no such request, or will not state it, do not press. "
-        "The account number and the amount are what matter: once both have been stated, ask for nothing more. "
-        f"When you have the answer, call {RECORD} once, thank them and end the call. "
+        "Speak English only. Start with two short sentences: this is an automated call from "
+        f"{PAYER} to check a payment before it is sent, and if they would rather check first, they can hang up "
+        f"and call {PAYER} back on the number they have for it. "
+        f"{question} "
+        "When they state digits, repeat back what they said once and ask whether you heard it right; that is "
+        "their own answer, never a confirmation. "
+        "You do not know the account or the amount, and you must never suggest one, or say whether what they "
+        "state matches, or what will happen to the payment. If they ask, say the accounts team will check it. "
+        "If they say they made no such request, or will not say, do not press. "
+        "If they do not handle this or do not have it to hand, ask who at their company can confirm it, a name "
+        "or a department; do not take a phone number. "
+        "Once you have what you asked for, ask for nothing more. "
+        f"Then call {RECORD} once, thank them and end the call. "
         "Keep every reply to one or two short sentences."
     )
 
@@ -207,13 +217,13 @@ class Call:
     each turn reads that queue up to the agent's turn_complete.
     """
 
-    def __init__(self, payment_id: str, payment: Payment, contact: Contact, connect: Connect) -> None:
+    def __init__(self, payment_id: str, payment: Payment, contact: Contact, ask: Ask, connect: Connect) -> None:
         self.payment_id = payment_id
         self.transcript: list[Turn] = []
         self.statement: Statement | None = None
         self.turns = 0
         self.last = time.monotonic()
-        instruction = brief(payment, contact)
+        instruction = brief(payment, contact, ask)
         self.agent = LlmAgent(
             name="verification_call",
             model=LiveGemini(model=LIVE_MODEL, transport=connect),
@@ -341,7 +351,7 @@ class Calls:
         item = store.get(payment_id)
         if item.status != "pending" or item.tier != "verify" or item.verify_with is None:
             raise CallError("This payment has no call to make.")
-        call = Call(payment_id, demo.scenario_for(payment_id).payment, item.verify_with, self._connect)
+        call = Call(payment_id, demo.scenario_for(payment_id).payment, item.verify_with, item.ask, self._connect)
         try:
             await call.start()
         except Exception as e:

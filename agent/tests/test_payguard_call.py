@@ -111,7 +111,7 @@ def test_brief_never_carries_the_account_or_the_amount():
     for pid in ("P-1002", "P-1003"):
         checked(pid)
         payment = demo.scenario_for(pid).payment
-        text = brief(payment, store.get(pid).verify_with)
+        text = brief(payment, store.get(pid).verify_with, store.get(pid).ask)
         assert payment.account.number not in text
         assert str(payment.amount) not in text and f"{payment.amount:,}" not in text
         assert "automated" in text
@@ -119,19 +119,19 @@ def test_brief_never_carries_the_account_or_the_amount():
 
 def test_brief_names_people_in_english():
     checked("P-1003")
-    text = brief(demo.scenario_for("P-1003").payment, store.get("P-1003").verify_with)
+    text = brief(demo.scenario_for("P-1003").payment, store.get("P-1003").verify_with, store.get("P-1003").ask)
     assert "Ichiro Sato" in text and "佐藤" not in text
 
 
 def test_agent_voice_streams_and_code_confirms_the_answer():
     checked("P-1002")
-    session = FakeSession([said("This is an automated call."), *records(account_number="8812345", amount=486000)])
+    session = FakeSession([said("This is an automated call."), *records(bank_name="Yuunagi Bank", account_number="2345")])
     calls = Calls(connect_to(session))
 
     async def go():
         first = await start(calls, "P-1002")
         assert [e.type for e in first] == ["audio", "said"] and done(first) is None
-        last = await say(calls, "P-1002", text="Yuunagi Bank, 8812345, 486,000 yen.")
+        last = await say(calls, "P-1002", text="Yuunagi Bank, ending 2345.")
         assert done(last).outcome == "confirmed" and last[-1].type == "done"
         assert any(e.type == "said" and e.text == "Thank you." for e in last)
 
@@ -143,7 +143,7 @@ def test_agent_voice_streams_and_code_confirms_the_answer():
 
 def test_payee_states_the_registered_account_and_the_payment_is_held():
     checked("P-1002")
-    calls = Calls(connect_to(FakeSession([said("Hello."), *records(account_number="1234567", amount=486000)])))
+    calls = Calls(connect_to(FakeSession([said("Hello."), *records(bank_name="Isana Bank", account_number="1234567")])))
 
     async def go():
         await start(calls, "P-1002")
@@ -172,12 +172,12 @@ def test_answer_counts_even_if_the_goodbye_never_comes(monkeypatch):
 
     monkeypatch.setattr(call_module, "FOLLOW_UP_TIMEOUT", 0.05)
     checked("P-1002")
-    tool_turn = records(account_number="8812345", amount=486000)[0]
+    tool_turn = records(bank_name="Yuunagi Bank", account_number="8812345")[0]
     calls = Calls(connect_to(FakeSession([said("Hello."), tool_turn])))
 
     async def go():
         await start(calls, "P-1002")
-        return done(await say(calls, "P-1002", text="8812345, 486,000 yen."))
+        return done(await say(calls, "P-1002", text="Yuunagi Bank, 8812345."))
 
     assert asyncio.run(go()).outcome == "confirmed"
 
@@ -279,14 +279,14 @@ def test_endpoints_stream_one_event_per_line(monkeypatch):
     from main import app
 
     checked("P-1002")
-    session = FakeSession([said("Hello."), *records(account_number="8812345", amount=486000)])
+    session = FakeSession([said("Hello."), *records(bank_name="Yuunagi Bank", account_number="2345")])
     monkeypatch.setattr(api, "calls", Calls(connect_to(session)))
     with TestClient(app) as client:  # one event loop for the whole call, as in the server
         res = client.post("/demo/payments/P-1002/agent-call")
         assert res.headers["content-type"].startswith("application/x-ndjson")
         assert [json.loads(line)["type"] for line in res.text.splitlines()] == ["audio", "said"]
         assert client.post("/demo/payments/P-1002/agent-call/say", json={"audio": "not base64!"}).status_code == 422
-        res = client.post("/demo/payments/P-1002/agent-call/say", json={"text": "8812345, 486,000 yen."})
+        res = client.post("/demo/payments/P-1002/agent-call/say", json={"text": "Yuunagi Bank, ending 2345."})
         assert json.loads(res.text.splitlines()[-1]) == {"type": "done", "outcome": "confirmed"}
         assert client.post("/demo/payments/P-1002/agent-call/hang-up").status_code == 409  # already over
         assert client.post("/demo/payments/P-1001/agent-call").status_code == 409  # unchecked: no call to make

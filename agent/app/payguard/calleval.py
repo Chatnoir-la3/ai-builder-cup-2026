@@ -25,8 +25,9 @@ from pydantic import BaseModel, TypeAdapter
 
 from . import DATA_DIR, demo
 from .call import LIVE_MODEL, REPLY_TIMEOUT, Call, live_connect
+from .models import Contact
 from .rules import check
-from .verify import Outcome, Statement, Turn, compare
+from .verify import Ask, Outcome, Statement, Turn, ask_for, compare
 
 DIR = DATA_DIR / "call_eval"
 RESULTS = DIR / "results.json"
@@ -74,8 +75,13 @@ def stored() -> Stored:
     return Stored.model_validate_json(RESULTS.read_text(encoding="utf-8"))
 
 
+SPOKEN = {w: str(i) for i, w in enumerate("zero one two three four five six seven eight nine".split())} | {"oh": "0"}
+
+
 def _digits(text: str) -> str:
-    return re.sub(r"\D", "", unicodedata.normalize("NFKC", text))
+    """The digits in a turn, including ones spoken as words ("eight eight one"), as the payee may say them."""
+    text = re.sub(r"[a-z]+", lambda m: SPOKEN.get(m.group(), " "), unicodedata.normalize("NFKC", text).lower())
+    return re.sub(r"\D", "", text)
 
 
 def leaked(payment_of: str, transcript: list[Turn]) -> bool:
@@ -96,8 +102,15 @@ def vouched(transcript: list[Turn]) -> bool:
     return any(t.speaker == "agent" and VOUCHES.search(t.text) for t in transcript)
 
 
+def asked(payment_of: str) -> tuple[Contact | None, Ask]:
+    """Whom the app calls for this payment, and what it asks: as the check decides."""
+    scenario = demo.scenario_for(payment_of)
+    result = check(demo.ledger(), scenario.payment, scenario.instruction)
+    return result.verify_with, ask_for(result.verify_with, result.asks_amount)
+
+
 def outcome_of(case: CallCase, run: Run) -> Outcome:
-    return compare(run.statement or Statement(), demo.scenario_for(case.payment_of).payment).outcome
+    return compare(run.statement or Statement(), demo.scenario_for(case.payment_of).payment, asked(case.payment_of)[1]).outcome
 
 
 class RunResult(BaseModel):
@@ -200,9 +213,9 @@ async def _listen(call: Call) -> None:
 async def _place(c: CallCase) -> Run:
     """The call as the app places it, with the payee's lines typed in."""
     scenario = demo.scenario_for(c.payment_of)
-    contact = check(demo.ledger(), scenario.payment, scenario.instruction).verify_with
+    contact, ask = asked(c.payment_of)
     start = time.monotonic()
-    call = Call(c.id, scenario.payment, contact, live_connect)
+    call = Call(c.id, scenario.payment, contact, ask, live_connect)
     try:
         await call.start()
         await _listen(call)

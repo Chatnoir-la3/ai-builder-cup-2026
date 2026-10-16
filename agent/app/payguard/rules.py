@@ -270,7 +270,7 @@ def check(
     elif vendor is not None:
         findings += _domain_findings(ledger, ins, vendor.email_domains, lookups.email_senders)
         findings += _channel_findings(ins, vendor.name, list(vendor.usual_channels))
-        verify_with = vendor.contact
+        verify_with = vendor.accounts_contact or vendor.contact  # the people who know the account, if the ledger has them
     else:
         findings += _domain_findings(ledger, ins, [], lookups.email_senders)
         if lookups.official_contact is not None:

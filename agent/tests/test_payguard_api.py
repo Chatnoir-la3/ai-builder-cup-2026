@@ -110,7 +110,7 @@ def test_flagged_payment_needs_a_confirmed_call_and_a_second_person(fake_check):
     client.post("/check", json={"payment_id": "P-1002"})
     assert approve("P-1002", CEO).status_code == 409  # no call logged
     d = call("P-1002", AP, True).json()
-    assert d["call"]["contact"]["phone"] == "03-0000-2001" and d["status"] == "pending"
+    assert d["call"]["contact"]["phone"] == "03-0000-2011" and d["status"] == "pending"
     assert approve("P-1002").status_code == 409  # no second approver
     assert approve("P-1002", AP).status_code == 409  # the caller cannot also approve
     ok = approve("P-1002", CEO).json()

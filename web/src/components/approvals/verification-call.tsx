@@ -30,8 +30,8 @@ const TAP = `class Tap extends AudioWorkletProcessor {
 registerProcessor("tap", Tap);`;
 
 const OUTCOME_TEXT: Record<CallOutcome, string> = {
-  confirmed: "The payee stated the same account and amount as the transfer. Read the call, then approve.",
-  mismatch: "The payee stated a different account or amount. The payment is on hold.",
+  confirmed: "What they stated matches the transfer. Read the call, then approve.",
+  mismatch: "They stated something different from the transfer. The payment is on hold.",
   denied: "They made no such request. The payment is on hold.",
   incomplete: "Nothing was confirmed. Call the number yourself.",
 };
@@ -241,8 +241,9 @@ export function VerificationCall({
             Let the agent call {contactName}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Gemini Live calls the number above and asks them to state the account and amount. It is never told
-            either, so it cannot lead them; code compares what they state with the transfer.
+            Gemini Live calls the number above. A supplier is asked for the bank and the last four digits of the
+            account; someone named in a request, whether they asked for it and how much. The agent is never told
+            the account or the amount, so it cannot lead them; code compares what they state with the transfer.
           </p>
         </>
       )}

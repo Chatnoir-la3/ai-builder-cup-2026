@@ -37,7 +37,7 @@ def test_callback_number_comes_from_ledger_not_instruction():
     payment, ins = scenario("account-change-tax-audit")
     result = check(LEDGER, payment, ins)
     assert result.verify_with is not None
-    assert result.verify_with.phone == "03-0000-2001"
+    assert result.verify_with.phone == "03-0000-2011"  # the supplier's accounts team, not the sales contact
 
 
 def test_ceo_chat_urgent_transfer():

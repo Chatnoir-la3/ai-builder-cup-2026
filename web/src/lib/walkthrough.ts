@@ -47,7 +47,7 @@ export const NODES: FlowNode[] = [
   { id: "has-phone", kind: "decision", title: "Ledger has a number to call?", detail: "A new payee has none", built: true, x: DECISION, y: 690 },
   { id: "finder", kind: "step", role: "ai", title: "Finder (Gemini + Google Search)", detail: "Looks up the payee's number on public pages", built: true, x: RIGHT, y: 705 },
   { id: "found", kind: "decision", title: "Number found and confirmed?", built: true, x: RIGHT + 20, y: 820 },
-  { id: "call", kind: "step", role: "ai", title: "Verification call (Gemini Live)", detail: "Calls the ledger number or one Google Search found; asks them to state the account and amount, which it is never told", built: true, x: SPINE, y: 840 },
+  { id: "call", kind: "step", role: "ai", title: "Verification call (Gemini Live)", detail: "Calls the ledger number or one Google Search found; asks the supplier for the bank and the account's last four digits (a CEO: did they ask, and how much), which it is never told", built: true, x: SPINE, y: 840 },
   { id: "confirmed", kind: "decision", title: "Do they match the transfer?", detail: "Code compares what they stated", built: true, x: DECISION, y: 950 },
   { id: "second", kind: "step", role: "human", title: "One person approves", detail: "After reading the call; the agent cannot approve", built: true, x: SPINE, y: 1090 },
   { id: "send", kind: "step", role: "data", title: "Transfer sent", detail: "", built: true, x: SPINE, y: 1190 },
@@ -95,7 +95,7 @@ export const SCENARIOS: Scenario[] = [
     summary: "A supplier really moved banks after a merger.",
     normal: true,
     answers: { external: false, differs: true, "has-phone": true, confirmed: true },
-    outcome: "Called on the ledger number, the supplier states the new account and amount; code finds they match. Sent, and the new account is now verified.",
+    outcome: "Called on the ledger number, the supplier's accounts team states the new bank and the account's last four digits; code finds they match. Sent, and the new account is now verified.",
   },
   {
     id: "new-supplier",
@@ -103,7 +103,7 @@ export const SCENARIOS: Scenario[] = [
     summary: "A real company with no history in the ledger yet.",
     normal: true,
     answers: { external: false, differs: true, "has-phone": false, found: true, confirmed: true },
-    outcome: "Gemini finds the payee's number on a public page, the supplier states the account and amount on the call, and the account is recorded.",
+    outcome: "Gemini finds the payee's number on a public page, the supplier states the bank and the account's last four digits on the call, and the account is recorded.",
   },
   {
     id: "lookalike-account-change",
