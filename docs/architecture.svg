@@ -53,7 +53,7 @@
 
   <rect x="302" y="466" width="324" height="62" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
   <text x="318" y="492" class="t" fill="#1d4ed8">4  Call · Gemini Live</text>
-  <text x="318" y="512" class="s">Verify only: payee states account; code compares</text>
+  <text x="318" y="512" class="s">Verify only: payee states bank + last 4; code compares</text>
 
   <text x="302" y="554" class="l">Routine payments stop after the rules: one model call.</text>
 

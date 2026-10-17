@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="780" viewBox="0 0 1040 780" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="820" viewBox="0 0 1040 820" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title>Approval flow</title>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -14,7 +14,7 @@
     .c { font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; }
     .line { stroke: #a1a1aa; stroke-width: 1.5; fill: none; }
   </style>
-  <rect width="1040" height="780" fill="#fafafa"/>
+  <rect width="1040" height="820" fill="#fafafa"/>
   <text x="32" y="44" class="h">Approval flow</text>
   <text x="32" y="66" class="m">Every branch is a rule in code. The tier decides what the approver must do before a transfer is sent.</text>
 
@@ -61,39 +61,53 @@
   <rect x="370" y="344" width="300" height="52" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
   <text x="520" y="367" class="t" text-anchor="middle" fill="#1d4ed8">Explainer · Gemini</text>
   <text x="520" y="385" class="s" text-anchor="middle">What differs, whom to call; code checks it</text>
+  <text x="656" y="367" class="c" text-anchor="end" fill="#b45309">VERIFY</text>
   <line x1="520" y1="396" x2="520" y2="416" class="line" marker-end="url(#a)"/>
 
-  <rect x="370" y="418" width="300" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
-  <text x="520" y="441" class="t" text-anchor="middle" fill="#b45309">Approver calls</text>
-  <text x="520" y="459" class="s" text-anchor="middle">The ledger contact or the official number,</text>
-  <text x="520" y="475" class="s" text-anchor="middle">never a number in the message.</text>
-  <text x="656" y="441" class="c" text-anchor="end" fill="#b45309">VERIFY</text>
-  <line x1="520" y1="482" x2="520" y2="520" class="line" marker-end="url(#a)"/>
-  <text x="530" y="506" class="k">Confirmed</text>
+  <rect x="370" y="418" width="300" height="64" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="520" y="441" class="t" text-anchor="middle" fill="#1d4ed8">Agent call · Gemini Live</text>
+  <text x="520" y="459" class="s" text-anchor="middle">Ledger contact: bank + last four digits;</text>
+  <text x="520" y="475" class="s" text-anchor="middle">a CEO: did you ask, and how much?</text>
+  <line x1="520" y1="482" x2="520" y2="500" class="line" marker-end="url(#a)"/>
 
-  <path d="M370 450H180V520" class="line" marker-end="url(#a)"/>
-  <text x="188" y="442" class="k">Not confirmed</text>
-  <rect x="40" y="522" width="280" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
-  <text x="56" y="548" class="t" fill="#b45309">Held, not sent</text>
-  <text x="56" y="568" class="s">Likely impersonation: tell the bank</text>
+  <rect x="370" y="502" width="300" height="48" rx="8" fill="#f4f4f5" stroke="#18181b"/>
+  <text x="520" y="524" class="t" text-anchor="middle">Compare · code</text>
+  <text x="520" y="541" class="s" text-anchor="middle">What was stated, against the transfer</text>
 
-  <rect x="370" y="522" width="300" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
-  <text x="520" y="545" class="t" text-anchor="middle" fill="#b45309">Call logged, second approval</text>
-  <text x="520" y="563" class="s" text-anchor="middle">Who called, when, which number.</text>
-  <text x="520" y="579" class="s" text-anchor="middle">The second approver is not the caller.</text>
-  <line x1="520" y1="586" x2="520" y2="624" class="line" marker-end="url(#a)"/>
+  <path d="M370 526H180V590" class="line" marker-end="url(#a)"/>
+  <text x="188" y="516" class="k">Different, or "I never asked"</text>
+  <line x1="520" y1="550" x2="520" y2="590" class="line" marker-end="url(#a)"/>
+  <text x="530" y="575" class="k">Confirmed</text>
+  <path d="M670 526H855V590" class="line" marker-end="url(#a)"/>
+  <text x="680" y="516" class="k">Could not confirm</text>
 
-  <rect x="370" y="626" width="300" height="64" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
-  <text x="520" y="649" class="t" text-anchor="middle" fill="#047857">Sent, and recorded in the ledger</text>
-  <text x="520" y="667" class="s" text-anchor="middle">The payment joins the history;</text>
-  <text x="520" y="683" class="s" text-anchor="middle">a confirmed account is marked verified.</text>
+  <rect x="40" y="592" width="280" height="64" rx="8" fill="#fef2f2" stroke="#fca5a5"/>
+  <text x="56" y="618" class="t" fill="#b91c1c">Held, not sent</text>
+  <text x="56" y="638" class="s">Likely impersonation: tell the bank</text>
+
+  <rect x="370" y="592" width="300" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="520" y="615" class="t" text-anchor="middle" fill="#b45309">One approval, after reading the call</text>
+  <text x="520" y="633" class="s" text-anchor="middle">The transcript stays with the payment.</text>
+  <text x="520" y="649" class="s" text-anchor="middle">The agent cannot approve.</text>
+
+  <rect x="720" y="592" width="280" height="64" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="736" y="615" class="t" fill="#b45309">A person calls</text>
+  <text x="736" y="633" class="s">Whoever the agent was told can answer.</text>
+  <text x="736" y="649" class="s">Then an approver who is not the caller.</text>
+
+  <line x1="520" y1="656" x2="520" y2="676" class="line" marker-end="url(#a)"/>
+  <path d="M855 656V710H674" class="line" marker-end="url(#a)"/>
+  <rect x="370" y="678" width="300" height="64" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="520" y="701" class="t" text-anchor="middle" fill="#047857">Sent, and recorded in the ledger</text>
+  <text x="520" y="719" class="s" text-anchor="middle">The payment joins the history;</text>
+  <text x="520" y="735" class="s" text-anchor="middle">a confirmed account is marked verified.</text>
 
   <!-- loop -->
-  <path d="M670 658H1016V263H704" class="line" stroke-dasharray="5 4" marker-end="url(#a)"/>
-  <text x="1008" y="648" class="s" text-anchor="end">Next payment to this account passes quietly</text>
+  <path d="M370 710H20V263H336" class="line" stroke-dasharray="5 4" marker-end="url(#a)"/>
+  <text x="32" y="700" class="s">Next payment to this account passes quietly</text>
 
   <!-- legend -->
-  <g transform="translate(40 722)">
+  <g transform="translate(40 774)">
     <rect width="14" height="14" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
     <text x="22" y="12" class="s">Gemini</text>
     <rect x="96" width="14" height="14" rx="3" fill="#f4f4f5" stroke="#18181b"/>
