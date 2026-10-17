@@ -242,7 +242,7 @@ function NoticeCard({
   const blocked = result.tier === "block";
   const reasons = (
     <>
-      <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
+      <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm [overflow-wrap:anywhere]">
         {notice.reasons.map((r) => (
           <li key={r.code}>{r.text}</li>
         ))}
@@ -522,7 +522,7 @@ export function PaymentReview({ initial, actingAs: initialActingAs }: { initial:
         </TabsList>
 
         <TabsContent value="review" className="mt-2">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
             <div className="flex flex-col gap-4 lg:col-span-2">
               <Card>
                 <CardHeader>

@@ -99,7 +99,7 @@ export default async function EvaluationPage(props: PageProps<"/evaluation">) {
         </div>
 
         <Tabs defaultValue={tab === "reading" || tab === "calls" ? tab : "rules"} className="gap-4">
-          <TabsList>
+          <TabsList className="max-w-full justify-start overflow-x-auto">
             <TabsTrigger value="rules">Rules · {cases.length} cases</TabsTrigger>
             <TabsTrigger value="reading">Reading by Gemini · {r.cases} cases</TabsTrigger>
             <TabsTrigger value="calls">Verification calls · {c.cases} cases</TabsTrigger>
