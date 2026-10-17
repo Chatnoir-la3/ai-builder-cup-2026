@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { base64ToPcm16, downsample, floatToPcm16, pcm16ToBase64, pcm16ToFloat, splitEvents } from "@/lib/agent-call";
+import { base64ToPcm16, downsample, floatToPcm16, isSilent, pcm16ToBase64, pcm16ToFloat, splitEvents } from "@/lib/agent-call";
 
 describe("splitEvents", () => {
   it("returns whole lines as events and keeps a partial line for the next chunk", () => {
@@ -34,6 +34,15 @@ describe("pcm", () => {
     expect(out[0]).toBeCloseTo(0.6);
     expect(out[1]).toBeCloseTo(-0.6);
     expect(downsample(new Float32Array([1, 2]), 16_000)).toEqual(new Float32Array([1, 2]));
+  });
+
+  it("treats a turn with no window above the floor as silent", () => {
+    const rate = 16_000;
+    const quiet = new Float32Array(rate).map((_, i) => 0.003 * Math.sin(i));
+    expect(isSilent(quiet, rate)).toBe(true);
+    const spoken = quiet.slice();
+    for (let i = 8_000; i < 8_800; i++) spoken[i] = 0.2 * Math.sin(i / 3);
+    expect(isSilent(spoken, rate)).toBe(false);
   });
 
   it("converts 16-bit samples to floats for playback", () => {

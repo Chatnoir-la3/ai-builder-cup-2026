@@ -54,6 +54,21 @@ export function downsample(samples: Float32Array, fromRate: number, toRate = REC
   return out;
 }
 
+// Below this level (about -40 dBFS) in every 50 ms window, nothing was said. Live turns silence into made-up words,
+// so a silent turn is not sent.
+export const SILENCE_RMS = 0.01;
+
+export function isSilent(samples: Float32Array, rate: number, threshold = SILENCE_RMS): boolean {
+  const size = Math.max(1, Math.round(rate / 20));
+  for (let start = 0; start < samples.length; start += size) {
+    const end = Math.min(samples.length, start + size);
+    let sum = 0;
+    for (let i = start; i < end; i++) sum += samples[i] * samples[i];
+    if (Math.sqrt(sum / (end - start)) >= threshold) return false;
+  }
+  return true;
+}
+
 export function pcm16ToFloat(pcm: Int16Array): Float32Array<ArrayBuffer> {
   const out = new Float32Array(pcm.length);
   for (let i = 0; i < pcm.length; i++) out[i] = pcm[i] / 32768;
