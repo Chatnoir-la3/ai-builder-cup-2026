@@ -109,6 +109,8 @@ def _ask(payee: str) -> tuple[Answer, list[str]]:
     from google import genai
     from google.genai import types
 
+    from .reader import MODEL_HTTP_OPTIONS
+
     client = genai.Client()
     res = client.models.generate_content(
         model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
@@ -117,7 +119,7 @@ def _ask(payee: str) -> tuple[Answer, list[str]]:
             system_instruction=FINDER_INSTRUCTION,
             tools=[types.Tool(google_search=types.GoogleSearch())],
             thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW),
-            http_options=types.HttpOptions(timeout=30_000),
+            http_options=MODEL_HTTP_OPTIONS,
         ),
     )
     meta = res.candidates[0].grounding_metadata if res.candidates else None
