@@ -17,6 +17,7 @@ What is asked depends on whom the call reaches (`Ask`), so that the person can a
 
 import re
 import unicodedata
+from difflib import SequenceMatcher
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -34,6 +35,10 @@ BANKS: dict[str, tuple[str, ...]] = {
     "ほしみ信用金庫": ("Hoshimi",),
 }
 _BANK_WORDS = re.compile(r"shinkin|bank|銀行|信用金庫|しんきん|信金")
+# Speech recognition bends unfamiliar bank names ("Isana" heard as "Iisan", "Yuunagi" as "You nagi"). A name this
+# close to exactly one bank's is taken as that bank. The digits must still match, so a near name alone confirms
+# nothing.
+NEAR_BANK = 0.75
 
 
 class Ask(BaseModel):
@@ -94,14 +99,16 @@ def _bank_key(name: str) -> str:
 
 
 def _bank_of(name: str, expected: str) -> str | None:
-    """The bank a stated name refers to, if code recognizes it."""
+    """The bank a stated name refers to, if code recognizes it: by its name, or a name close to only one bank's."""
     key = _bank_key(name)
     if not key:
         return None
-    for bank, said in {**BANKS, expected: BANKS.get(expected, ())}.items():
-        if key in {_bank_key(bank), *(_bank_key(s) for s in said)}:
+    keys = {bank: {_bank_key(bank), *(_bank_key(s) for s in said)} for bank, said in {**BANKS, expected: BANKS.get(expected, ())}.items()}
+    for bank, known in keys.items():
+        if key in known:
             return bank
-    return None
+    near = {bank for bank, known in keys.items() if any(SequenceMatcher(None, key, k).ratio() >= NEAR_BANK for k in known)}
+    return near.pop() if len(near) == 1 else None
 
 
 def _account(stated: str | None, expected: str) -> bool | None:

@@ -40,8 +40,21 @@ def test_fewer_than_four_digits_confirm_nothing():
 
 
 def test_a_bank_code_cannot_recognize_confirms_nothing():
-    result = compare(Statement(bank_name="Younagi", account_number="2345"), CHANGED)
-    assert result.outcome == "incomplete" and result.missing == ["bank_name"]
+    for said in ("Mizuho Bank", "三井住友銀行", "Bank"):
+        result = compare(Statement(bank_name=said, account_number="2345"), CHANGED)
+        assert result.outcome == "incomplete" and result.missing == ["bank_name"], said
+
+
+def test_a_name_misheard_close_to_one_bank_is_that_bank():
+    for said in ("Younagi", "You nagi Bank", "Unagi Bank", "Yuunaggi"):
+        assert compare(Statement(bank_name=said, account_number="2345"), CHANGED).outcome == "confirmed", said
+    result = compare(Statement(bank_name="Iisan Bank", account_number="4567"), CHANGED)  # heard on a real call
+    assert result.outcome == "mismatch" and result.mismatched == ["bank_name", "account_number"]
+
+
+def test_a_near_name_alone_confirms_nothing():
+    result = compare(Statement(bank_name="Younagi", account_number="4567"), CHANGED)
+    assert result.outcome == "mismatch" and result.mismatched == ["account_number"]
 
 
 def test_supplier_amount_is_not_compared_unless_asked():
