@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import calleval, checkstore, demo, evalset, ledger, readereval
-from .call import CallError, Event, calls
+from .call import CallError, CallLimit, Event, calls
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
 from .models import CheckResult, Channel, Contact, Payment, Tier
 from .pipeline import CheckResponse, run_check
@@ -187,10 +187,10 @@ def _reply(payment_id: str) -> StreamingResponse:
 @router.post("/demo/payments/{payment_id}/agent-call")
 async def start_agent_call(payment_id: str) -> StreamingResponse:
     _scenario(payment_id)
-    if not _within_hourly_cap():
-        raise HTTPException(status_code=429, detail="hourly limit reached")
     try:
-        await calls.open(payment_id)
+        await calls.open(payment_id, _within_hourly_cap)
+    except CallLimit:
+        raise HTTPException(status_code=429, detail="hourly limit reached") from None
     except CallError as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
     return _reply(payment_id)

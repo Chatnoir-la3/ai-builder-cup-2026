@@ -47,6 +47,7 @@ LANGUAGE = "en-US"  # fixed: Live can drift between languages mid-call
 PAYER = "Miori Koumuten"
 MAX_TURNS = 10
 IDLE_SECONDS = 180
+UNANSWERED_SECONDS = 60  # a call nobody has spoken on frees the line sooner, so one visitor cannot hold it
 REPLY_TIMEOUT = 30
 FOLLOW_UP_TIMEOUT = 8  # after record_answer, how long to wait for the agent to say goodbye
 MAX_AUDIO_BYTES = 30 * 16_000 * 2  # 30 s of 16 kHz 16-bit mono
@@ -96,6 +97,10 @@ RECORD_ANSWER = types.FunctionDeclaration(
 
 class CallError(Exception):
     pass
+
+
+class CallLimit(CallError):
+    """The demo's hourly limit on model calls is reached."""
 
 
 class Event(BaseModel):
@@ -331,9 +336,11 @@ class Calls:
     def __init__(self, connect: Connect = live_connect) -> None:
         self._connect = connect
         self._call: Call | None = None
+        self._opening = asyncio.Lock()
 
     async def _expire(self) -> None:
-        if self._call is not None and time.monotonic() - self._call.last > IDLE_SECONDS:
+        call = self._call
+        if call is not None and time.monotonic() - call.last > (IDLE_SECONDS if call.turns else UNANSWERED_SECONDS):
             await self._close()  # left idle: nothing was recorded, so the call is left to a person
 
     def _current(self, payment_id: str) -> Call:
@@ -342,7 +349,12 @@ class Calls:
             raise CallError("No call in progress for this payment.")
         return call
 
-    async def open(self, payment_id: str) -> None:
+    async def open(self, payment_id: str, allow: Callable[[], bool] = lambda: True) -> None:
+        """`allow` is asked only when a call is about to be placed, so a call turned away costs nothing."""
+        async with self._opening:  # two opens at once must not both see the line free
+            await self._open(payment_id, allow)
+
+    async def _open(self, payment_id: str, allow: Callable[[], bool]) -> None:
         await self._expire()
         if self._call is not None:
             if self._call.payment_id != payment_id:
@@ -351,6 +363,8 @@ class Calls:
         item = store.get(payment_id)
         if item.status != "pending" or item.tier != "verify" or item.verify_with is None:
             raise CallError("This payment has no call to make.")
+        if not allow():
+            raise CallLimit("hourly limit reached")
         call = Call(payment_id, demo.scenario_for(payment_id).payment, item.verify_with, item.ask, self._connect)
         try:
             await call.start()

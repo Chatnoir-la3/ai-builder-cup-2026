@@ -37,7 +37,7 @@ For a Verify payment (P-1002, P-1003), press **Let the agent call**. In the demo
 
 You can also call yourself and record whether the payee confirmed it. Then the second approval must come from someone else in a different browser: open the payment in a private window, choose another person, and approve there. Approve stays disabled until a call is confirmed. An approved payment is added to the ledger's history, and a confirmed account counts as known from then on.
 
-One verification call runs at a time across the demo; if someone else is on a call, try again in a few minutes.
+One verification call runs at a time across the demo; if someone else is on a call, try again in a few minutes. A call nobody speaks on ends after a minute. The public demo allows 30 model calls an hour across all visitors (checks and placed calls; a stored check uses none); if it says the limit is reached, try again later.
 
 - **How it works** walks each scenario through the approval flow.
 - **Evaluation** runs 28 cases through the same rules and explains each result.
@@ -174,7 +174,7 @@ What is kept:
 
 - **Where it sits.** At the company's approval step, where the transfer and the email that caused it are both in view: the AP workflow of accounting software, or the approval screen of corporate internet banking. It reads the company's own records, not the bank's. A bank can offer it to business customers on that approval screen; the bank's own fraud screening still sees only the transfer. In the demo, `POST /check` takes one of the four demo payments. A real integration would send the payment and its instruction.
 - **The ledger.** It comes from the vendor master and payment history the company already keeps, and it grows by rule. An approval adds the payment to the history, and a confirmed call marks the account as verified.
-- **Scale.** The demo runs one agent instance on purpose. The ledger and the approval queue are in Firestore, but writes are ordered by a lock inside the process, and the hourly check limit is counted in memory. Running more instances needs Firestore transactions in their place, and per-company tenants. A routine payment costs one model call.
+- **Scale.** The demo runs one agent instance on purpose. The ledger and the approval queue are in Firestore, but writes are ordered by a lock inside the process, and the hourly limit of 30 model calls is counted in memory. Running more instances needs Firestore transactions in their place, and per-company tenants. A routine payment costs one model call.
 - **Data residency.** The default model runs on `global`. If data must stay in the region, switch to `gemini-3.5-flash` in `asia-southeast1` (see below). Gemini Live is offered only in the US and the EU, so the call audio leaves Asia; `LIVE_LOCATION` picks the region.
 - **The phone line.** In the demo the payee is played in the browser. A real call needs a telephony bridge (Contact Center AI or a SIP / Twilio media stream) carrying the same audio. The agent already opens by saying it is an automated call; local rules on automated calls still apply.
 - **What the demo leaves out.** Sign-in and per-company tenants, the company registry lookup, a real phone line, and integration with a real accounting system or bank.
