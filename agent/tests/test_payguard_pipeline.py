@@ -235,13 +235,14 @@ def test_listed_link_blocks_an_otherwise_routine_payment():
     assert response.notice is not None and response.notice.action.startswith("This payment cannot be approved")
 
 
-def test_model_calls_have_a_timeout_and_one_retry():
+def test_model_calls_cut_off_a_hung_reply_and_retry_a_busy_gemini():
     from app.payguard.explain import explainer_agent
     from app.payguard.reader import reader_agent
 
     for agent in (reader_agent, explainer_agent):
         http = agent.generate_content_config.http_options
-        assert http.timeout == 25_000 and http.retry_options.attempts == 2
+        assert http.timeout == 30_000 and http.retry_options.attempts == 4
+        assert http.retry_options.http_status_codes is None  # the client's default: 408, 429 and 5xx, including 504
 
 
 def test_explanation_calling_a_found_number_official_is_rejected():

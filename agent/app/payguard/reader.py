@@ -139,8 +139,12 @@ def ground(reading: Reading, originals: list[Original]) -> GroundedReading:
     return GroundedReading(instruction=instruction, evidence=kept, unverified=unverified)
 
 
-# A reply normally takes under 10 s; one that hangs is cut off and tried once more, so a demo never waits a minute.
-MODEL_HTTP_OPTIONS = types.HttpOptions(timeout=25_000, retry_options=types.HttpRetryOptions(attempts=2, initial_delay=1))
+# A reply normally takes under 10 s. When Gemini is busy it refuses (429) or a request hangs until the deadline (504);
+# either is sent again after about 2, 4 and 8 s, since the next request usually answers at once.
+MODEL_HTTP_OPTIONS = types.HttpOptions(
+    timeout=30_000,
+    retry_options=types.HttpRetryOptions(attempts=4, initial_delay=2, max_delay=8),
+)
 
 reader_agent = Agent(
     model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
