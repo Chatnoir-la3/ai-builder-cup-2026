@@ -6,6 +6,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { listPayments } from "@/lib/payguard-server";
 import { readSession } from "@/lib/session";
+import { TRANSLATION_GUARD } from "@/lib/translation-guard";
 
 import "./globals.css";
 
@@ -27,6 +28,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     .catch(() => null);
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${notoJp.variable} h-full antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: TRANSLATION_GUARD }} />
+      </head>
       <body className="min-h-full">
         <TooltipProvider>
           <SidebarProvider>
