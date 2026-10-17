@@ -6,7 +6,7 @@ from google.genai import types
 
 from app.payguard import demo
 from app.payguard.approvals import store
-from app.payguard.call import ANSWERED, CallError, Calls, Event, brief
+from app.payguard.call import ANSWERED, UNANSWERED_SECONDS, CallError, CallLimit, Calls, Event, brief
 from app.payguard.rules import check
 
 
@@ -95,6 +95,11 @@ def checked(payment_id: str) -> None:
 
 async def start(calls: Calls, payment_id: str) -> list[Event]:
     await calls.open(payment_id)
+    return [e async for e in calls.stream(payment_id)]
+
+
+async def start_with(calls: Calls, payment_id: str, allow) -> list[Event]:
+    await calls.open(payment_id, allow)
     return [e async for e in calls.stream(payment_id)]
 
 
@@ -249,6 +254,87 @@ def test_one_call_at_a_time():
         with pytest.raises(CallError):
             await calls.open("P-1003")
         await calls.hang_up("P-1002")
+
+    asyncio.run(go())
+
+
+def test_only_a_call_actually_placed_counts_toward_the_cap():
+    checked("P-1002")
+    checked("P-1003")
+    counted: list[str] = []
+
+    def allow() -> bool:
+        counted.append("call")
+        return True
+
+    calls = Calls(connect_to(FakeSession([said("Hello.")])))
+
+    async def go():
+        with pytest.raises(CallError):
+            await calls.open("P-1001", allow)  # nothing to call about
+        await start_with(calls, "P-1002", allow)
+        with pytest.raises(CallError):
+            await calls.open("P-1003", allow)  # the line is busy
+        await calls.hang_up("P-1002")
+
+    asyncio.run(go())
+    assert counted == ["call"]
+
+
+def test_a_call_over_the_cap_is_refused_and_leaves_the_line_free():
+    checked("P-1002")
+    calls = Calls(connect_to(FakeSession([said("Hello.")])))
+
+    async def go():
+        with pytest.raises(CallLimit):
+            await calls.open("P-1002", lambda: False)
+        await start(calls, "P-1002")
+        await calls.hang_up("P-1002")
+
+    asyncio.run(go())
+
+
+def test_a_call_nobody_answers_frees_the_line_sooner():
+    checked("P-1002")
+    checked("P-1003")
+    @asynccontextmanager
+    async def each(config):
+        yield FakeSession([said("Hello."), said("Go on.")])  # a new line for each call
+
+    calls = Calls(each)
+
+    async def go():
+        await start(calls, "P-1002")
+        calls._call.last -= UNANSWERED_SECONDS + 1
+        await start(calls, "P-1003")  # nobody spoke on P-1002, so it no longer holds the line
+        await say(calls, "P-1003", text="Hello?")
+        calls._call.last -= UNANSWERED_SECONDS + 1
+        with pytest.raises(CallError):
+            await calls.open("P-1002")  # someone is talking on P-1003: it keeps the line for longer
+        await calls.hang_up("P-1003")
+
+    asyncio.run(go())
+
+
+def test_two_calls_opened_at_once_leave_one_in_progress():
+    checked("P-1002")
+    checked("P-1003")
+    opened: list = []
+
+    @asynccontextmanager
+    async def slow(config):
+        await asyncio.sleep(0.01)
+        session = FakeSession([said("Hello.")])
+        opened.append(session)
+        yield session
+
+    calls = Calls(slow)
+
+    async def go():
+        results = await asyncio.gather(calls.open("P-1002"), calls.open("P-1003"), return_exceptions=True)
+        assert sum(isinstance(r, CallError) for r in results) == 1
+        assert len(opened) == 1
+        await calls.hang_up(calls._call.payment_id)
 
     asyncio.run(go())
 

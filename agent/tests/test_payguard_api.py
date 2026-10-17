@@ -74,6 +74,14 @@ def test_checks_stop_at_the_hourly_cap(fake_check, monkeypatch):
     assert client.post("/check", json={"payment_id": "P-0000"}).status_code == 404
 
 
+def test_a_call_turned_away_does_not_use_the_hourly_cap(monkeypatch):
+    monkeypatch.setattr(api, "CHECKS_PER_HOUR", 1)
+    monkeypatch.setattr(api, "_hour", {"start": None, "count": 0})
+    for _ in range(3):
+        assert client.post("/demo/payments/P-1001/agent-call").status_code == 409  # unchecked: no call to make
+    assert api._hour["count"] == 0
+
+
 def test_a_payment_opened_again_shows_its_stored_check(fake_check):
     first = client.post("/check", json={"payment_id": "P-1002"}).json()
     again = client.post("/check", json={"payment_id": "P-1002"}).json()
