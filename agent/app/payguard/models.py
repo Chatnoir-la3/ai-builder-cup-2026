@@ -43,6 +43,10 @@ class Vendor(BaseModel):
     email_domains: list[str]
     usual_channels: list[Channel]
     contact: Contact
+    accounts_contact: Contact | None = Field(
+        default=None,
+        description="Who handles their invoices and bank details (accounts receivable); verification calls go here when set",
+    )
 
 
 class Person(BaseModel):
@@ -144,6 +148,11 @@ class CheckResult(BaseModel):
     @property
     def show(self) -> bool:
         return bool(self.findings)
+
+    @property
+    def asks_amount(self) -> bool:
+        """A finding concerns the amount, so the verification call asks for it."""
+        return any("amount" in f.fields for f in self.findings)
 
     @property
     def tier(self) -> Tier:

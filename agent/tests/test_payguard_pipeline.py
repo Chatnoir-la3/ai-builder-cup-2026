@@ -10,7 +10,7 @@ from app.payguard.pipeline import check_node, respond
 from app.payguard.reader import FIELDS, Evidence, Reading, _supports
 
 TAX_AUDIT = "P-1002"
-CALLBACK = Contact(name="ツバクロ建材 営業部 田中", phone="03-0000-2001")
+CALLBACK = Contact(name="ツバクロ建材 経理部 中村", phone="03-0000-2011")
 
 
 def faithful_reading(payment_id: str) -> Reading:
@@ -38,7 +38,7 @@ def ransom_findings() -> list[Finding]:
 
 def good_explanation() -> Explanation:
     return Explanation(
-        action="Before approving, call ツバクロ建材 営業部 田中 at 03-0000-2001 using the number in your own records.",
+        action="Before approving, call ツバクロ建材 経理部 中村 at 03-0000-2011 using the number in your own records.",
         reasons=[
             Reason(code="ACCOUNT_NOT_REGISTERED", text="Account 8812345 is not the one registered for ツバクロ建材株式会社."),
             Reason(code="SENDER_DOMAIN_LOOKALIKE", text="The email came from tsubakur0-kenzai.example, not tsubakuro-kenzai.example."),
@@ -143,7 +143,7 @@ def test_good_explanation_is_used():
                 Reason(code="SENDER_DOMAIN_LOOKALIKE", text="The domain looks like the real one."),
             ]
         },
-        {"action": "Before approving, call 03-0000-2001. " + "Please be careful. " * 15},
+        {"action": "Before approving, call 03-0000-2011. " + "Please be careful. " * 15},
     ],
 )
 def test_bad_explanation_falls_back_to_template(broken):
@@ -155,7 +155,7 @@ def test_bad_explanation_falls_back_to_template(broken):
 
 def test_template_notice_gives_ledger_number_and_top_reasons():
     n = template_notice(ransom_findings(), CALLBACK)
-    assert "03-0000-2001" in n.action
+    assert "03-0000-2011" in n.action
     assert [r.code for r in n.reasons] == ["ACCOUNT_NOT_REGISTERED", "SENDER_DOMAIN_LOOKALIKE"]
     assert acceptable(Explanation(action=n.action, reasons=n.reasons), ransom_findings(), CALLBACK)
 

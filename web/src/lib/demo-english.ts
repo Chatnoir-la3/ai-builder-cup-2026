@@ -20,15 +20,20 @@ export const START_WITH = "P-1002";
 // told the payment's account or amount; code compares what the payee states with them.
 export const CALL_ROLE: Record<string, { role: string; lines: { label: string; say: string }[] }> = {
   "P-1002": {
-    role: "Mr. Tanaka at Tsubakuro Kenzai, the real supplier",
+    role: "Ms. Nakamura in accounts at Tsubakuro Kenzai, the real supplier",
     lines: [
       {
         label: "The account did not change (the email was fake)",
-        say: "Our account hasn't changed. Isana Bank, head office, account 1234567. The amount is 486,000 yen.",
+        say: "Our account hasn't changed. Isana Bank, the number ends in 4567.",
       },
       {
         label: "The change is real",
-        say: "Yes, Yuunagi Bank, Shinjuku branch, account 8812345, Okano Taro. 486,000 yen.",
+        say: "Yes, we moved banks. Yuunagi Bank, the last four digits are 2345.",
+      },
+      { label: "It heard you right", say: "Yes, that's right." },
+      {
+        label: "You don't have it to hand",
+        say: "Sorry, I don't have the bank details in front of me. Kimura, our accounts manager, can tell you.",
       },
     ],
   },
@@ -36,10 +41,8 @@ export const CALL_ROLE: Record<string, { role: string; lines: { label: string; s
     role: "Ichiro Sato, the CEO",
     lines: [
       { label: "You never asked for it", say: "No, I didn't ask for any transfer." },
-      {
-        label: "You did ask for it",
-        say: "Yes, I did. Rurikake LLC, Yuunagi Bank, Shibuya branch, account 5503921, three million yen.",
-      },
+      { label: "You did ask for it", say: "Yes, I asked Suzuki to pay Rurikake LLC. Three million yen." },
+      { label: "It heard you right", say: "Yes, that's right." },
     ],
   },
 };

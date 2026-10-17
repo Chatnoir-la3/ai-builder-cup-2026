@@ -35,6 +35,7 @@ def test_agent_saying_the_transfer_first_is_a_leak():
 def test_agent_repeating_what_the_payee_said_is_not():
     assert not leaked("P-1002", [payee("Account 8812345, 486,000 yen."), agent("Thank you, 8812345 and 486,000 noted.")])
     assert not leaked("P-1002", [agent("Please state the account and amount.")])
+    assert not leaked("P-1002", [payee("Account eight eight one two three four five."), agent("You said 8812345?")])
 
 
 def test_vouching():
@@ -52,8 +53,8 @@ def test_evaluation_scores_what_code_decides():
             StoredCase(
                 id="C01",
                 runs=[
-                    Run(statement=Statement(account_number="1234567", amount=486000), transcript=[], seconds=20.0),
-                    Run(statement=Statement(account_number="8812345", amount=486000), transcript=[], seconds=30.0),
+                    Run(statement=Statement(bank_name="Isana Bank", account_number="1234567"), transcript=[], seconds=20.0),
+                    Run(statement=Statement(bank_name="Yuunagi Bank", account_number="2345"), transcript=[], seconds=30.0),
                     Run(statement=None, transcript=[], seconds=5.0, error="TimeoutError"),
                 ],
             )

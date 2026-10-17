@@ -8,7 +8,7 @@ The tier from the rules decides what approval needs; code enforces it, the model
 Who calls and who approves come with the browser session they act from, and the second approval must
 come from a different session than the call: one person needs another browser or device to play both.
 There is no sign-in yet, so a session shows separation, not identity.
-A call records the account and amount the payee was asked to confirm; if the transfer or the number to
+A call records the account and amount it was about; if the transfer or the number to
 call changes, the call no longer counts. Once a call is logged, a later check cannot lower the tier: the
 reading can vary between runs, and checking again until it passes must not skip the call. Once a payment
 is decided, a later check does not change what the decision was based on.
@@ -28,14 +28,15 @@ from pydantic import BaseModel
 from . import demo, ledger
 from .models import CHANNEL_NAMES, CheckResult, Contact, Payment, Tier
 from .storage import QUEUE, backend
-from .verify import Outcome, Statement, Turn, compare
+from .verify import Ask, Outcome, Statement, Turn, ask_for, compare
 
 JST = timezone(timedelta(hours=9))
 Status = Literal["pending", "approved", "held"]
 TIER_RANK: dict[str, int] = {"pass": 0, "verify": 1, "block": 2}
 Decision = Literal["approved", "held"]
 AGENT = "Verification agent"  # the call agent, logged as the caller; it never approves
-FIELD_NAMES = {"account_number": "account number", "amount": "amount"}
+FIELD_NAMES = {"bank_name": "bank", "account_number": "account number", "amount": "amount"}
+REFER_CHARS = 80  # how much of "ask for ..." the history keeps
 
 logger = logging.getLogger("payguard.approvals")
 
@@ -65,6 +66,7 @@ class QueueItem(BaseModel):
     findings: list[str] | None = None  # codes from the latest check; None until checked
     tier: Tier | None = None
     verify_with: Contact | None = None
+    ask: Ask = Ask()  # what the verification call asks for (see verify)
     call: CallLog | None = None
     caller_session: str | None = None  # digest of the caller's session; never sent to the browser
     history: list[HistoryItem]
@@ -90,6 +92,13 @@ def _digest(session: str) -> str:
 
 def _transfer(payment: Payment) -> str:
     return f"account {payment.account.number}, ¥{payment.amount:,}"
+
+
+def _confirmed(ask: Ask, payment: Payment) -> str:
+    if ask.request:
+        return f"they said they asked for it, and stated the amount, ¥{payment.amount:,}"
+    stated = f"the payee stated the transfer's bank and account (ending {payment.account.number[-4:]})"
+    return stated + (f" and amount, ¥{payment.amount:,}" if ask.amount else "")
 
 
 def _same_transfer(call: CallLog, payment: Payment) -> bool:
@@ -142,6 +151,7 @@ class ApprovalStore:
             if item.call and (item.call.contact != result.verify_with or not _same_transfer(item.call, payment)):
                 item.call = item.caller_session = None  # a call about a different number or transfer no longer counts
             item.findings, item.tier, item.verify_with = codes, result.tier, result.verify_with
+            item.ask = ask_for(result.verify_with, result.asks_amount)
             item.history.append(HistoryItem(at=datetime.now(JST), event="checked", detail=detail))
             self._save(payment_id, item)
 
@@ -190,13 +200,14 @@ class ApprovalStore:
                 raise DecisionError("This payment has no call to make.")
             contact = item.verify_with
             payment = demo.scenario_for(payment_id).payment
-            result = compare(statement, payment)
+            result = compare(statement, payment, item.ask)
             now = datetime.now(JST)
             called = f"{AGENT} called {contact.name} on {_number_from(contact)}"
             if result.outcome == "incomplete":
-                item.history.append(
-                    HistoryItem(at=now, event="called", detail=f"{called}: nothing confirmed; call the number yourself")
-                )
+                detail = f"{called}: nothing confirmed; call the number yourself"
+                if statement.refer_to:
+                    detail += f" and ask for {statement.refer_to.strip()[:REFER_CHARS]}"
+                item.history.append(HistoryItem(at=now, event="called", detail=detail))
                 self._save(payment_id, item)
                 return item
             item.call = CallLog(
@@ -212,7 +223,7 @@ class ApprovalStore:
             )
             item.caller_session = None
             if result.outcome == "confirmed":
-                detail = f"{called}: the payee stated {_transfer(payment)}"
+                detail = f"{called}: {_confirmed(item.ask, payment)}"
             elif result.outcome == "denied":
                 detail = f"{called}: {contact.name} made no such request"
             else:

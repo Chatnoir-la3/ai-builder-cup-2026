@@ -82,8 +82,8 @@ function History({ items }: { items: HistoryItem[] }) {
 }
 
 const CALL_RESULT: Record<NonNullable<CallLog["outcome"]>, string> = {
-  confirmed: "stated the same account and amount as the transfer",
-  mismatch: "stated a different account or amount",
+  confirmed: "stated details that match the transfer",
+  mismatch: "stated something different",
   denied: "made no such request",
   incomplete: "confirmed nothing",
 };
@@ -99,7 +99,7 @@ function AgentCallRecord({ call }: { call: CallLog }) {
           The agent called {call.contact.name} at {formatDayTime(call.at)}. They{" "}
           {CALL_RESULT[call.outcome ?? "incomplete"]}
           {call.mismatched && call.mismatched.length > 0 &&
-            ` (${call.mismatched.map((f) => FIELD_LABEL[f as InstructionField] ?? f).join(", ").toLowerCase()})`}
+            ` (${call.mismatched.map((f) => (f === "bank_name" ? "Bank" : (FIELD_LABEL[f as InstructionField] ?? f))).join(", ").toLowerCase()})`}
           . Code compared it, not Gemini.
         </span>
       </div>
