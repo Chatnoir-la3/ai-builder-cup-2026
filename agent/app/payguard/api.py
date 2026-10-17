@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import calleval, demo, evalset, ledger, readereval
+from . import calleval, checkstore, demo, evalset, ledger, readereval
 from .call import CallError, Event, calls
 from .approvals import CallLog, Decision, DecisionError, HistoryItem, Status, approvers, store
 from .models import CheckResult, Channel, Contact, Payment, Tier
@@ -152,9 +152,13 @@ def _within_hourly_cap() -> bool:
 @router.post("/check")
 async def check_payment(req: CheckRequest) -> CheckResponse:
     _scenario(req.payment_id)
-    if not _within_hourly_cap():
-        raise HTTPException(status_code=429, detail="hourly check limit reached")
-    response = await run_check(req.payment_id)
+    key = checkstore.key(req.payment_id)
+    response = checkstore.get(key)
+    if response is None:
+        if not _within_hourly_cap():
+            raise HTTPException(status_code=429, detail="hourly check limit reached")
+        response = await run_check(req.payment_id)
+        checkstore.put(key, response)
     store.checked(req.payment_id, CheckResult(findings=response.findings, verify_with=response.verify_with))
     return response
 

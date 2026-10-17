@@ -1,8 +1,9 @@
-"""Where the demo keeps its state: the approval queue and the ledger it records into.
+"""Where the demo keeps its state: the approval queue, the ledger it records into, and stored checks.
 
 In memory by default (tests, local runs). With FIRESTORE_DATABASE set, in Firestore, so call logs,
 approvals and what the ledger learned survive the service scaling to zero. Documents hold the queue
-item or the ledger as JSON; originals are never stored.
+item, the ledger or a check result as JSON. Originals are never stored; a check result keeps the
+fields Gemini read and the short quotes it read them from.
 """
 
 import os
@@ -11,6 +12,7 @@ from typing import Protocol
 
 QUEUE = "payguard_queue"
 LEDGER = "payguard_ledger"
+CHECKS = "payguard_checks"
 
 
 class Backend(Protocol):

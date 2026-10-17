@@ -162,6 +162,7 @@ Vertex AI does not use customer data to train models without permission. Google 
 What is kept:
 
 - Originals are read for the check and are not stored by it.
+- Each check result is kept in Firestore: the fields Gemini read, the short quotes it read them from, the findings and the notice. Opening the payment again shows it at once instead of calling Gemini again. It is reused only while the ledger and the deployed revision are the same; an approval or a deploy runs the check again. A demo reset keeps them, since the ledger returns to the same starting point.
 - The approval queue in Firestore keeps the findings, the tier, the number to call, who called and approved, and the account and amount the call was about. For an agent call it also keeps the outcome, the fields that differed and the transcript; the audio is not kept. The ledger keeps the vendor master and payment history.
 - Audit rows in BigQuery keep metadata only, with all content redacted.
 - Decision logs record the tier, the finding codes and the call outcome, not names or account numbers.

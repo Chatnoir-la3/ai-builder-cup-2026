@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from app.payguard import api
 from app.payguard.approvals import store
 from app.payguard.pipeline import CheckResponse
+from app.payguard.storage import CHECKS, backend
 from main import app
 
 client = TestClient(app)
@@ -12,8 +13,10 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def fresh_store():
     store.reset()
+    backend().clear(CHECKS)
     yield
     store.reset()
+    backend().clear(CHECKS)
 
 
 @pytest.fixture
@@ -23,7 +26,10 @@ def fake_check(monkeypatch):
     from app.payguard.reader import GroundedReading
     from app.payguard.rules import check
 
+    runs: list[str] = []
+
     async def run(payment_id: str) -> CheckResponse:
+        runs.append(payment_id)
         s = demo.scenario_for(payment_id)
         result = check(demo.ledger(), s.payment, s.instruction)
         return CheckResponse(
@@ -36,6 +42,7 @@ def fake_check(monkeypatch):
         )
 
     monkeypatch.setattr(api, "run_check", run)
+    return runs
 
 
 def test_list_starts_pending_and_unchecked():
@@ -60,9 +67,52 @@ def test_checks_stop_at_the_hourly_cap(fake_check, monkeypatch):
     monkeypatch.setattr(api, "_hour", {"start": None, "count": 0})
     assert client.post("/check", json={"payment_id": "P-1001"}).status_code == 200
     assert client.post("/check", json={"payment_id": "P-1002"}).status_code == 200
-    assert client.post("/check", json={"payment_id": "P-1001"}).status_code == 429
+    assert client.post("/check", json={"payment_id": "P-1003"}).status_code == 429
+    # A stored check costs no model call, so the cap does not turn it away.
+    assert client.post("/check", json={"payment_id": "P-1001"}).status_code == 200
     # An unknown id is turned away before it counts.
     assert client.post("/check", json={"payment_id": "P-0000"}).status_code == 404
+
+
+def test_a_payment_opened_again_shows_its_stored_check(fake_check):
+    first = client.post("/check", json={"payment_id": "P-1002"}).json()
+    again = client.post("/check", json={"payment_id": "P-1002"}).json()
+    assert again == first and fake_check == ["P-1002"]
+    rows = {r["id"]: r for r in client.get("/demo/payments").json()}
+    assert rows["P-1002"]["findings"] == 3
+
+
+def test_a_changed_ledger_checks_again_and_a_reset_reuses_the_first_check(fake_check):
+    client.post("/check", json={"payment_id": "P-1001"})
+    approve("P-1001")  # the ledger's payment history grows
+    client.post("/check", json={"payment_id": "P-1001"})
+    assert fake_check == ["P-1001", "P-1001"]
+    client.post("/demo/reset")  # back to the demo ledger, whose check is stored
+    client.post("/check", json={"payment_id": "P-1001"})
+    assert fake_check == ["P-1001", "P-1001"]
+    assert client.get("/demo/payments/P-1001").json()["status"] == "pending"
+
+
+def test_a_new_revision_checks_again(fake_check, monkeypatch):
+    client.post("/check", json={"payment_id": "P-1001"})
+    monkeypatch.setenv("K_REVISION", "agent-00099-new")
+    client.post("/check", json={"payment_id": "P-1001"})
+    assert fake_check == ["P-1001", "P-1001"]
+
+
+def test_a_failed_check_is_not_stored(fake_check, monkeypatch):
+    real = api.run_check
+
+    async def fail_once(payment_id: str) -> CheckResponse:
+        if not fake_check:
+            fake_check.append("failed")
+            raise RuntimeError("Gemini busy")
+        return await real(payment_id)
+
+    monkeypatch.setattr(api, "run_check", fail_once)
+    assert TestClient(app, raise_server_exceptions=False).post("/check", json={"payment_id": "P-1001"}).status_code == 500
+    assert client.post("/check", json={"payment_id": "P-1001"}).status_code == 200
+    assert fake_check == ["failed", "P-1001"]
 
 
 def test_unknown_payment_and_original_are_404():
