@@ -10,6 +10,7 @@ import {
   base64ToPcm16,
   downsample,
   floatToPcm16,
+  isSilent,
   pcm16ToBase64,
   pcm16ToFloat,
   splitEvents,
@@ -214,6 +215,11 @@ export function VerificationCall({
     if (total < rate / 4) {
       setPhase("connected");
       setError("That was too short. Hold the button while you speak.");
+      return;
+    }
+    if (isSilent(all, rate)) {
+      setPhase("connected");
+      setError("Nothing was heard. Check your microphone, then press Talk and speak.");
       return;
     }
     say({ audio: pcm16ToBase64(floatToPcm16(downsample(all, rate))) });
