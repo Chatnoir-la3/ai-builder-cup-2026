@@ -137,7 +137,8 @@ def get_original(name: str) -> Response:
 
 
 # The demo is public and has no login. The agent runs as one instance, so this bounds what model calls can cost.
-CHECKS_PER_HOUR = 120
+# Checks and verification calls share it; a stored check costs nothing and does not count.
+CHECKS_PER_HOUR = 30
 _hour = {"start": None, "count": 0}
 
 
